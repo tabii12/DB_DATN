@@ -9,10 +9,10 @@ router.get('/', getAllCategories);
 //Lấy chi tiết 1 danh mục
 router.get('/:id',getCategoryById);
 
-router.get('/create', createCategory);
+router.post('/create', createCategory);
 
-router.get('/update/:id', updateCategory);
+router.put('/update/:id', updateCategory);
 
-router.get('/delete/:id', deleteCategory);
+router.delete('/delete/:id', deleteCategory);
 
 module.exports = router;
