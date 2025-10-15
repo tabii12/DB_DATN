@@ -25,7 +25,6 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 var categoriesRouter = require('./routes/categories');
 var sub_categoriesRouter = require('./routes/sub_categories');  
 var productsRouter = require('./routes/products');
@@ -45,7 +44,6 @@ app.use(cors());
 
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/categories', categoriesRouter);
 app.use('/sub_categories', sub_categoriesRouter);
 app.use('/products', productsRouter);
