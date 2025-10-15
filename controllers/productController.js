@@ -9,7 +9,6 @@ const getAllProducts = async (req, res) => {
     const products = await Product.find()
       .populate("MaLoai")   
       .populate("ThuongHieu")
-      .populate("images"); 
 
     res.status(200).json({
       success: true,
@@ -31,7 +30,6 @@ const getProductById = async (req, res) => {
     const product = await Product.findById(id)
       .populate("MaLoai")
       .populate("ThuongHieu")
-      .populate("images");
 
     if (!product) {
       return res.status(404).json({
