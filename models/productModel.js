@@ -1,17 +1,42 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // Tên sản phẩm (bắt buộc)
-  price: { type: Number, required: true, min: 0 }, // Giá sản phẩm (bắt buộc, >= 0)
-  images: { type: [String], required: true }, // Danh sách hình ảnh (mảng chuỗi)
-  sub_category: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "sub_categories",
-    required: true
-  }, // Liên kết với danh mục con (bắt buộc)
-  description: { type: String }, // Mô tả sản phẩm
-});
+const productSchema = new mongoose.Schema(
+  {
+    MaDH: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    TenDH: {
+      type: String,
+      required: true,
+    },
+    ThuongHieu: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
+      required: true,
+    },
+    Gia: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    SoLuong: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    MaLoai: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category", 
+      required: true,
+    },
+  },
+  { timestamps: true } 
+);
 
-const Product = mongoose.model("products", productSchema);
+const Product =
+  mongoose.models.Product ||
+  mongoose.model("Product", productSchema, "products");
 
-module.exports = Product;
+export default Product;
