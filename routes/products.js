@@ -9,6 +9,6 @@ router.get('/', getAllProducts)
 
 router.get('/:id', getProductById)
 
-router.post("/create", upload.single("image"), createProduct);
+router.post("/create", upload.array("image", 5), createProduct);
 
 module.exports = router;
