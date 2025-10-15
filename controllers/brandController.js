@@ -1,5 +1,5 @@
-import Brand from "../models/brandModel.js";
-import cloudinary from "../config/cloudinary.js";
+const Brand = require("../models/brandModel");
+const cloudinary = require("../configs/cloudinaryConfig");
 
 const getAllBrands = async (req, res) => {
   try {

@@ -1,15 +1,15 @@
-import Product from "../models/productModel.js";
-import Category from "../models/categoryModel.js";
-import Brand from "../models/brandModel.js";
-import Image from "../models/imageModel.js";
-import cloudinary from "../configs/cloudinaryConfig.js";
+const Product = require("../models/productModel");
+const Category = require("../models/categoryModel");
+const Brand = require("../models/brandModel");
+const Image = require("../models/imageModel");
+const cloudinary = require("../configs/cloudinaryConfig");
 
 const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate("sub_category")   
-      .populate("brand")          
-      .populate("images");        
+      .populate("MaLoai")   // populate đúng field trong schema
+      .populate("ThuongHieu")
+      .populate("images");  // nếu images có ref tới Product
 
     res.status(200).json({
       success: true,
@@ -29,8 +29,8 @@ const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findById(id)
-      .populate("sub_category")
-      .populate("brand")
+      .populate("MaLoai")
+      .populate("ThuongHieu")
       .populate("images");
 
     if (!product) {
