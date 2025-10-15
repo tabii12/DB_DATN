@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
   {
@@ -28,15 +28,13 @@ const productSchema = new mongoose.Schema(
     },
     MaLoai: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Category", 
+      ref: "Category",
       required: true,
     },
   },
   { timestamps: true } 
 );
 
-const Product =
-  mongoose.models.Product ||
-  mongoose.model("Product", productSchema, "products");
+const Product = mongoose.models.Product || mongoose.model("Product", productSchema, "products");
 
-export default Product;
+module.exports = Product;

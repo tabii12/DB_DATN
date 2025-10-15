@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const brandSchema = new mongoose.Schema(
   {
@@ -18,10 +18,9 @@ const brandSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
-  },
+  }
 );
 
-const Brand =
-  mongoose.models.Brand || mongoose.model("Brand", brandSchema, "brands");
+const Brand = mongoose.models.Brand || mongoose.model("Brand", brandSchema, "brands");
 
-export default Brand;
+module.exports = Brand;
