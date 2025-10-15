@@ -27,6 +27,7 @@ var logger = require('morgan');
 var indexRouter = require('./routes/index');
 var categoriesRouter = require('./routes/categories');
 var productsRouter = require('./routes/products');
+var brandRouter = require('./routes/brands');
 
 var app = express();
 
@@ -45,6 +46,7 @@ app.use(cors());
 app.use('/', indexRouter);
 app.use('/categories', categoriesRouter);
 app.use('/products', productsRouter);
+app.use('/brands', brandRouter);
 
 
 // catch 404 and forward to error handler
