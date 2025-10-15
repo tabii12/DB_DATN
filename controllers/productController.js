@@ -7,9 +7,9 @@ const cloudinary = require("../configs/cloudinaryConfig");
 const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate("MaLoai")   // populate đúng field trong schema
+      .populate("MaLoai")   
       .populate("ThuongHieu")
-      .populate("images");  // nếu images có ref tới Product
+      .populate("images"); 
 
     res.status(200).json({
       success: true,
@@ -93,18 +93,22 @@ const createProduct = async (req, res) => {
     });
     await newProduct.save();
 
-    if (file) {
-      const uploadResult = await cloudinary.uploader.upload(file.path, {
-        folder: "products",
-      });
+    const files = req.files; // mảng các file upload
 
-      const newImage = new Image({
-        MaAnh: uploadResult.public_id,
-        Url: uploadResult.secure_url,
-        MaDH: newProduct._id,
-      });
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          folder: "products",
+        });
 
-      await newImage.save();
+        const newImage = new Image({
+          MaAnh: uploadResult.public_id,
+          Url: uploadResult.secure_url,
+          MaDH: newProduct._id,
+        });
+
+        await newImage.save();
+      }
     }
 
     res.status(201).json({
