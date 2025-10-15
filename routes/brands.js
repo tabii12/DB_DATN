@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+const upload = multer({ dest: 'uploads/' });
 
 const {
   getAllBrands,
@@ -11,6 +12,6 @@ router.get('/', getAllBrands);
 
 router.get('/:id', getBrandById);
 
-router.post('/create', createBrand);
+router.post('/create', upload.single('Logo'), createBrand);
 
 module.exports = router;
