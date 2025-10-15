@@ -11,6 +11,6 @@ router.get('/', getAllBrands);
 
 router.get('/:id', getBrandById);
 
-router.post('/', createBrand);
+router.post('/create', createBrand);
 
 module.exports = router;
