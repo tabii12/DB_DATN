@@ -7,8 +7,8 @@ const cloudinary = require("../configs/cloudinaryConfig");
 const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate("MaLoai", "TenLoai") 
-      .populate("ThuongHieu", "TenTH"); 
+      .populate("MaLoai", "TenLoai")
+      .populate("ThuongHieu", "TenTH");
 
     res.status(200).json({
       success: true,
@@ -68,21 +68,18 @@ const createProduct = async (req, res) => {
     const foundCategory = await Category.findById(MaLoai);
     const foundBrand = await Brand.findById(ThuongHieu);
 
-    if (!foundCategory) {
+    if (!foundCategory)
       return res.status(404).json({ success: false, message: "Danh mục không tồn tại!" });
-    }
-    if (!foundBrand) {
+    if (!foundBrand)
       return res.status(404).json({ success: false, message: "Thương hiệu không tồn tại!" });
-    }
 
-    const newProduct = new Product({
+    const newProduct = await Product.create({
       TenDH,
       ThuongHieu,
       Gia,
       SoLuong,
       MaLoai,
     });
-    await newProduct.save();
 
     if (files && files.length > 0) {
       for (const file of files) {
@@ -90,12 +87,11 @@ const createProduct = async (req, res) => {
           folder: "products",
         });
 
-        const newImage = new Image({
+        await Image.create({
           Url: uploadResult.secure_url,
+          PublicId: uploadResult.public_id, 
           MaDH: newProduct._id,
         });
-
-        await newImage.save();
       }
     }
 
@@ -117,39 +113,27 @@ const updateProduct = async (req, res) => {
     const files = req.files;
 
     const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Sản phẩm không tồn tại!",
-      });
-    }
+    if (!product) return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại!" });
 
-    if (MaLoai) {
-      const foundCategory = await Category.findById(MaLoai);
-      if (!foundCategory) {
-        return res.status(404).json({ success: false, message: "Danh mục không tồn tại!" });
-      }
-    }
+    if (MaLoai && !(await Category.findById(MaLoai)))
+      return res.status(404).json({ success: false, message: "Danh mục không tồn tại!" });
 
-    if (ThuongHieu) {
-      const foundBrand = await Brand.findById(ThuongHieu);
-      if (!foundBrand) {
-        return res.status(404).json({ success: false, message: "Thương hiệu không tồn tại!" });
-      }
-    }
+    if (ThuongHieu && !(await Brand.findById(ThuongHieu)))
+      return res.status(404).json({ success: false, message: "Thương hiệu không tồn tại!" });
 
-    product.TenDH = TenDH || product.TenDH;
-    product.ThuongHieu = ThuongHieu || product.ThuongHieu;
-    product.Gia = Gia || product.Gia;
-    product.SoLuong = SoLuong || product.SoLuong;
-    product.MaLoai = MaLoai || product.MaLoai;
-
+    Object.assign(product, {
+      TenDH: TenDH || product.TenDH,
+      ThuongHieu: ThuongHieu || product.ThuongHieu,
+      Gia: Gia || product.Gia,
+      SoLuong: SoLuong || product.SoLuong,
+      MaLoai: MaLoai || product.MaLoai,
+    });
     await product.save();
 
     if (files && files.length > 0) {
       const oldImages = await Image.find({ MaDH: product._id });
       for (const img of oldImages) {
-        await cloudinary.uploader.destroy(img.MaAnh);
+        if (img.PublicId) await cloudinary.uploader.destroy(img.PublicId);
         await img.deleteOne();
       }
 
@@ -158,11 +142,11 @@ const updateProduct = async (req, res) => {
           folder: "products",
         });
 
-        const newImage = new Image({
+        await Image.create({
           Url: uploadResult.secure_url,
+          PublicId: uploadResult.public_id,
           MaDH: product._id,
         });
-        await newImage.save();
       }
     }
 
@@ -173,10 +157,7 @@ const updateProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Lỗi khi cập nhật sản phẩm:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi cập nhật sản phẩm!",
-    });
+    res.status(500).json({ success: false, message: "Lỗi server khi cập nhật sản phẩm!" });
   }
 };
 
@@ -185,16 +166,11 @@ const deleteProduct = async (req, res) => {
     const { id } = req.params;
 
     const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Sản phẩm không tồn tại!",
-      });
-    }
+    if (!product) return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại!" });
 
     const images = await Image.find({ MaDH: product._id });
     for (const img of images) {
-      await cloudinary.uploader.destroy(img.MaAnh);
+      if (img.PublicId) await cloudinary.uploader.destroy(img.PublicId);
       await img.deleteOne();
     }
 
@@ -206,10 +182,7 @@ const deleteProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Lỗi khi xóa sản phẩm:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi xóa sản phẩm!",
-    });
+    res.status(500).json({ success: false, message: "Lỗi server khi xóa sản phẩm!" });
   }
 };
 

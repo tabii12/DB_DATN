@@ -7,6 +7,11 @@ const imageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    PublicId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     MaDH: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
