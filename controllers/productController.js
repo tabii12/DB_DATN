@@ -10,10 +10,20 @@ const getAllProducts = async (req, res) => {
       .populate("MaLoai", "TenLoai")
       .populate("ThuongHieu", "TenTH");
 
+    const productsWithImages = await Promise.all(
+      products.map(async (product) => {
+        const images = await Image.find({ MaDH: product._id });
+        return {
+          ...product._doc,
+          images: images.map((img) => img.Url),
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
-      count: products.length,
-      data: products,
+      count: productsWithImages.length,
+      data: productsWithImages,
     });
   } catch (error) {
     console.error("❌ Lỗi khi lấy danh sách sản phẩm:", error);
@@ -27,6 +37,7 @@ const getAllProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
+
     const product = await Product.findById(id)
       .populate("MaLoai", "TenLoai")
       .populate("ThuongHieu", "TenTH");
@@ -42,7 +53,10 @@ const getProductById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: { ...product._doc, images },
+      data: {
+        ...product._doc,
+        images: images.map((img) => img.Url), 
+      },
     });
   } catch (error) {
     console.error("❌ Lỗi khi lấy sản phẩm theo ID:", error);
@@ -52,6 +66,7 @@ const getProductById = async (req, res) => {
     });
   }
 };
+
 
 const createProduct = async (req, res) => {
   try {
