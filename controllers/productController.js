@@ -7,6 +7,8 @@ const cloudinary = require("../configs/cloudinaryConfig");
 const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
+      .populate("MaLoai", "TenLoai") 
+      .populate("ThuongHieu", "TenTH"); 
 
     res.status(200).json({
       success: true,
@@ -14,7 +16,7 @@ const getAllProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách sản phẩm:", error);
+    console.error("❌ Lỗi khi lấy danh sách sản phẩm:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi server khi lấy danh sách sản phẩm!",
@@ -26,6 +28,8 @@ const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findById(id)
+      .populate("MaLoai", "TenLoai")
+      .populate("ThuongHieu", "TenTH");
 
     if (!product) {
       return res.status(404).json({
@@ -34,12 +38,14 @@ const getProductById = async (req, res) => {
       });
     }
 
+    const images = await Image.find({ MaDH: product._id });
+
     res.status(200).json({
       success: true,
-      data: product,
+      data: { ...product._doc, images },
     });
   } catch (error) {
-    console.error("Lỗi khi lấy sản phẩm theo ID:", error);
+    console.error("❌ Lỗi khi lấy sản phẩm theo ID:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi server khi lấy sản phẩm!",
@@ -49,10 +55,10 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { MaDH, TenDH, ThuongHieu, Gia, SoLuong, MaLoai } = req.body;
-    const file = req.file;
+    const { TenDH, ThuongHieu, Gia, SoLuong, MaLoai } = req.body;
+    const files = req.files;
 
-    if (!MaDH || !TenDH || !ThuongHieu || !Gia || !SoLuong || !MaLoai) {
+    if (!TenDH || !ThuongHieu || !Gia || !SoLuong || !MaLoai) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng nhập đầy đủ thông tin sản phẩm!",
@@ -69,16 +75,7 @@ const createProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: "Thương hiệu không tồn tại!" });
     }
 
-    const existedProduct = await Product.findOne({ MaDH });
-    if (existedProduct) {
-      return res.status(400).json({
-        success: false,
-        message: "Mã sản phẩm đã tồn tại!",
-      });
-    }
-
     const newProduct = new Product({
-      MaDH,
       TenDH,
       ThuongHieu,
       Gia,
@@ -86,8 +83,6 @@ const createProduct = async (req, res) => {
       MaLoai,
     });
     await newProduct.save();
-
-    const files = req.files; 
 
     if (files && files.length > 0) {
       for (const file of files) {
@@ -119,7 +114,7 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { MaDH, TenDH, ThuongHieu, Gia, SoLuong, MaLoai } = req.body;
+    const { TenDH, ThuongHieu, Gia, SoLuong, MaLoai } = req.body;
     const files = req.files;
 
     const product = await Product.findById(id);
@@ -144,7 +139,6 @@ const updateProduct = async (req, res) => {
       }
     }
 
-    product.MaDH = MaDH || product.MaDH;
     product.TenDH = TenDH || product.TenDH;
     product.ThuongHieu = ThuongHieu || product.ThuongHieu;
     product.Gia = Gia || product.Gia;

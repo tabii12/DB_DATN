@@ -2,12 +2,6 @@ const mongoose = require("mongoose");
 
 const imageSchema = new mongoose.Schema(
   {
-    MaAnh: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
     Url: {
       type: String,
       required: true,

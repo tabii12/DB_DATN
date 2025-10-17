@@ -2,11 +2,6 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
   {
-    MaDH: {
-      type: String,
-      required: true,
-      unique: true,
-    },
     TenDH: {
       type: String,
       required: true,

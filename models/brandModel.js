@@ -2,12 +2,6 @@ const mongoose = require("mongoose");
 
 const brandSchema = new mongoose.Schema(
   {
-    MaTH: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
     TenTH: {
       type: String,
       required: true,

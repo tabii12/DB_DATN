@@ -26,22 +26,21 @@ const getBrandById = async (req, res) => {
 
 const createBrand = async (req, res) => {
   try {
-    const { MaTH, TenTH } = req.body;
+    const { TenTH } = req.body;
 
-    if (!MaTH || !TenTH) {
+    if (!TenTH) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng nhập đầy đủ Mã thương hiệu và Tên thương hiệu!",
+        message: "Vui lòng nhập Tên thương hiệu!",
       });
     }
 
-    const existed = await Brand.findOne({ MaTH });
+    const existed = await Brand.findOne({ TenTH });
     if (existed) {
-      return res.status(400).json({ success: false, message: "Mã thương hiệu đã tồn tại!" });
+      return res.status(400).json({ success: false, message: "Tên thương hiệu đã tồn tại!" });
     }
 
     let logoUrl = "";
-
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "brands",
@@ -50,7 +49,6 @@ const createBrand = async (req, res) => {
     }
 
     const newBrand = new Brand({
-      MaTH,
       TenTH,
       Logo: logoUrl,
     });
@@ -71,7 +69,7 @@ const createBrand = async (req, res) => {
 const updateBrand = async (req, res) => {
   try {
     const { id } = req.params;
-    const { MaTH, TenTH } = req.body;
+    const { TenTH } = req.body;
     const file = req.file;
 
     const brand = await Brand.findById(id);
@@ -91,9 +89,7 @@ const updateBrand = async (req, res) => {
       brand.Logo = uploadResult.secure_url;
     }
 
-    brand.MaTH = MaTH || brand.MaTH;
     brand.TenTH = TenTH || brand.TenTH;
-
     await brand.save();
 
     res.status(200).json({
@@ -137,4 +133,6 @@ module.exports = {
   getAllBrands,
   getBrandById,
   createBrand,
+  updateBrand,
+  deleteBrand,
 };

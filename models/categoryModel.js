@@ -2,12 +2,6 @@ const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema(
   {
-    MaLoai: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
     TenLoai: {
       type: String,
       required: true,

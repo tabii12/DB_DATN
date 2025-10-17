@@ -10,7 +10,7 @@ const getAllCategories = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Lỗi khi lấy danh mục:", error);
+    console.error("❌ Lỗi khi lấy danh mục:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi server khi lấy danh mục!",
@@ -34,7 +34,7 @@ const getCategoryById = async (req, res) => {
       data: category,
     });
   } catch (error) {
-    console.error("Lỗi khi lấy danh mục theo ID:", error);
+    console.error("❌ Lỗi khi lấy danh mục theo ID:", error);
     res.status(500).json({
       success: false,
       message: "Lỗi server!",
@@ -44,24 +44,24 @@ const getCategoryById = async (req, res) => {
 
 const createCategory = async (req, res) => {
   try {
-    const { MaLoai, TenLoai } = req.body;
+    const { TenLoai } = req.body;
 
-    if (!MaLoai || !TenLoai) {
+    if (!TenLoai) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng nhập đầy đủ Mã loại và Tên loại!",
+        message: "Vui lòng nhập Tên loại!",
       });
     }
 
-    const existed = await Category.findOne({ MaLoai });
+    const existed = await Category.findOne({ TenLoai });
     if (existed) {
       return res.status(400).json({
         success: false,
-        message: "Mã loại đã tồn tại!",
+        message: "Tên loại đã tồn tại!",
       });
     }
 
-    const newCategory = new Category({ MaLoai, TenLoai });
+    const newCategory = new Category({ TenLoai });
     await newCategory.save();
 
     res.status(201).json({
@@ -77,7 +77,7 @@ const createCategory = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   try {
-    const { MaLoai, TenLoai } = req.body;
+    const { TenLoai } = req.body;
     const { id } = req.params;
 
     const category = await Category.findById(id);
@@ -88,7 +88,6 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    category.MaLoai = MaLoai || category.MaLoai;
     category.TenLoai = TenLoai || category.TenLoai;
     await category.save();
 
