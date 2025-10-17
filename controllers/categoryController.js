@@ -75,8 +75,68 @@ const createCategory = async (req, res) => {
   }
 };
 
+const updateCategory = async (req, res) => {
+  try {
+    const { MaLoai, TenLoai } = req.body;
+    const { id } = req.params;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Danh mục không tồn tại!",
+      });
+    }
+
+    category.MaLoai = MaLoai || category.MaLoai;
+    category.TenLoai = TenLoai || category.TenLoai;
+    await category.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Cập nhật danh mục thành công!",
+      data: category,
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật danh mục:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi cập nhật danh mục!",
+    });
+  }
+};
+
+const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await Category.findById(id);
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Danh mục không tồn tại!",
+      });
+    }
+
+    await category.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Xóa danh mục thành công!",
+    });
+  } catch (error) {
+    console.error("❌ Lỗi khi xóa danh mục:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi xóa danh mục!",
+    });
+  }
+};
+
 module.exports = {
   getAllCategories,
   getCategoryById,
   createCategory,
+  updateCategory,
+  deleteCategory,
 };
