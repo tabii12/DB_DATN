@@ -91,7 +91,6 @@ const createProduct = async (req, res) => {
         });
 
         const newImage = new Image({
-          MaAnh: uploadResult.public_id,
           Url: uploadResult.secure_url,
           MaDH: newProduct._id,
         });
@@ -160,7 +159,6 @@ const updateProduct = async (req, res) => {
         });
 
         const newImage = new Image({
-          MaAnh: uploadResult.public_id,
           Url: uploadResult.secure_url,
           MaDH: product._id,
         });
