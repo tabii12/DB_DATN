@@ -41,9 +41,15 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("MatKhau")) return next(); 
-  this.MatKhau = await bcrypt.hash(this.MatKhau, salt);
-  next();
+  try {
+    if (!this.isModified("MatKhau")) return next();
+
+    const salt = await bcrypt.genSalt(10);
+    this.MatKhau = await bcrypt.hash(this.MatKhau, salt); 
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 userSchema.methods.comparePassword = async function (matkhauNhap) {
