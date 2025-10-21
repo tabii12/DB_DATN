@@ -2,11 +2,10 @@ const Category = require("../models/categoryModel");
 
 const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().select("TenLoai");
 
     res.status(200).json({
       success: true,
-      count: categories.length,
       data: categories,
     });
   } catch (error) {
@@ -20,12 +19,12 @@ const getAllCategories = async (req, res) => {
 
 const getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findById(req.params.id).select("TenLoai");
 
     if (!category) {
       return res.status(404).json({
         success: false,
-        message: "Danh mục không tồn tại!",
+        message: "Không tìm thấy danh mục!",
       });
     }
 
@@ -37,7 +36,7 @@ const getCategoryById = async (req, res) => {
     console.error("❌ Lỗi khi lấy danh mục theo ID:", error);
     res.status(500).json({
       success: false,
-      message: "Lỗi server!",
+      message: "Lỗi server khi lấy danh mục!",
     });
   }
 };

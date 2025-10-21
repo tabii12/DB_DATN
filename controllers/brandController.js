@@ -3,24 +3,41 @@ const cloudinary = require("../configs/cloudinaryConfig");
 
 const getAllBrands = async (req, res) => {
   try {
-    const brands = await Brand.find();
-    res.status(200).json({ success: true, data: brands });
+    const brands = await Brand.find().select("TenTH Logo"); 
+    res.status(200).json({
+      success: true,
+      data: brands,
+    });
   } catch (error) {
     console.error("❌ Lỗi khi lấy thương hiệu:", error);
-    res.status(500).json({ success: false, message: "Lỗi server!" });
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi lấy danh sách thương hiệu!",
+    });
   }
 };
 
 const getBrandById = async (req, res) => {
   try {
-    const brand = await Brand.findById(req.params.id);
+    const brand = await Brand.findById(req.params.id).select("TenTH Logo");
+
     if (!brand) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy thương hiệu!" });
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thương hiệu!",
+      });
     }
-    res.status(200).json({ success: true, data: brand });
+
+    res.status(200).json({
+      success: true,
+      data: brand,
+    });
   } catch (error) {
-    console.error("❌ Lỗi khi lấy thương hiệu:", error);
-    res.status(500).json({ success: false, message: "Lỗi server!" });
+    console.error("❌ Lỗi khi lấy thương hiệu theo ID:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi lấy thương hiệu!",
+    });
   }
 };
 

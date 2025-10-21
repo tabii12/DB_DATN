@@ -8,64 +8,60 @@ const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find()
       .populate("MaLoai", "TenLoai")
-      .populate("ThuongHieu", "TenTH");
+      .populate("ThuongHieu", "TenTH")
+      .select("TenDH Gia SoLuong MaLoai ThuongHieu"); 
 
     const productsWithImages = await Promise.all(
-      products.map(async (product) => {
-        const images = await Image.find({ MaDH: product._id });
+      products.map(async (p) => {
+        const images = await Image.find({ MaDH: p._id }).select("Url");
         return {
-          ...product._doc,
-          images: images.map((img) => img.Url),
+          _id: p._id,
+          TenDH: p.TenDH,
+          Gia: p.Gia,
+          SoLuong: p.SoLuong,
+          MaLoai: p.MaLoai?.TenLoai || null,
+          ThuongHieu: p.ThuongHieu?.TenTH || null,
+          images: images.map(i => i.Url),
         };
       })
     );
 
-    res.status(200).json({
-      success: true,
-      count: productsWithImages.length,
-      data: productsWithImages,
-    });
-  } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách sản phẩm:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi lấy danh sách sản phẩm!",
-    });
+    res.status(200).json({ success: true, data: productsWithImages });
+  } catch {
+    res.status(500).json({ success: false, message: "Lỗi server khi lấy sản phẩm!" });
   }
 };
 
+
 const getProductById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const product = await Product.findById(id)
+    const product = await Product.findById(req.params.id)
       .populate("MaLoai", "TenLoai")
-      .populate("ThuongHieu", "TenTH");
+      .populate("ThuongHieu", "TenTH")
+      .select("TenDH Gia SoLuong MaLoai ThuongHieu");
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy sản phẩm!",
-      });
-    }
+    if (!product)
+      return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm!" });
 
-    const images = await Image.find({ MaDH: product._id });
+    const images = await Image.find({ MaDH: product._id }).select("Url");
 
     res.status(200).json({
       success: true,
       data: {
-        ...product._doc,
-        images: images.map((img) => img.Url), 
+        _id: product._id,
+        TenDH: product.TenDH,
+        Gia: product.Gia,
+        SoLuong: product.SoLuong,
+        MaLoai: product.MaLoai?.TenLoai || null,
+        ThuongHieu: product.ThuongHieu?.TenTH || null,
+        images: images.map(i => i.Url),
       },
     });
-  } catch (error) {
-    console.error("❌ Lỗi khi lấy sản phẩm theo ID:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi lấy sản phẩm!",
-    });
+  } catch {
+    res.status(500).json({ success: false, message: "Lỗi server khi lấy sản phẩm!" });
   }
 };
+
 
 
 const createProduct = async (req, res) => {
