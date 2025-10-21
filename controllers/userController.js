@@ -1,4 +1,4 @@
-const { User } = require("../models/User");
+const { User } = require("../models/UserModel");
 const generateToken = require("../utils/generateToken");
 
 const createUser = async (req, res) => {
