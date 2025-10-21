@@ -9,8 +9,8 @@ const {
     loginUser 
 } = require("../controllers/userController");
 
-router.post("/register", createUser);
+router.post("/register", upload.none(), createUser);
 
-router.post("/login", loginUser);
+router.post("/login", upload.none(), loginUser);
 
 module.exports = router;
