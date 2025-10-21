@@ -23,11 +23,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^[+\d][\d\s-]{7,14}$/, "SĐT không hợp lệ"],
     },
-    DiaChi: {
-      type: String,
-      trim: true,
-      default: "",
-    },
     MatKhau: {
       type: String,
       required: [true, "Mật khẩu là bắt buộc"],

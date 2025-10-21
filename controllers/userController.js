@@ -3,7 +3,7 @@ const generateToken = require("../utils/generateToken");
 
 const createUser = async (req, res) => {
   try {
-    const { HoTen, Email, SDT, DiaChi, MatKhau } = req.body;
+    const { HoTen, Email, SDT, MatKhau } = req.body;
 
     if (!HoTen || !Email || !SDT || !MatKhau) {
       return res.status(400).json({
@@ -26,7 +26,6 @@ const createUser = async (req, res) => {
       HoTen,
       Email,
       SDT,
-      DiaChi,
       MatKhau,
       QuyenHang: "user", // mặc định là user
     });
