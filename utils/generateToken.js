@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const generateToken = (userId, role) => {
   return jwt.sign(
     { id: userId, role: role }, 
-    process.env.JWT_SECRET || "MagicWatchesSecretKey", 
+    process.env.JWT_SECRET || "PickYourwaySecretKey", 
     { expiresIn: "7d" } 
   );
 };

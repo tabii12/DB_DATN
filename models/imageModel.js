@@ -12,7 +12,7 @@ const imageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    MaDH: {
+    ProductId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
