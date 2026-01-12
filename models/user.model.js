@@ -3,35 +3,45 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
-    HoTen: {
+    name: {
       type: String,
-      required: [true, "Họ tên là bắt buộc"],
+      required: [true, "Tên người dùng là bắt buộc"],
       trim: true,
     },
-    Email: {
+
+    email: {
       type: String,
       required: [true, "Email là bắt buộc"],
       unique: true,
-      trim: true,
       lowercase: true,
+      trim: true,
       match: [/.+@.+\..+/, "Email không hợp lệ"],
     },
-    SDT: {
+
+    phone: {
       type: String,
-      required: [true, "Số điện thoại là bắt buộc"],
-      unique: true,
       trim: true,
-      match: [/^[+\d][\d\s-]{7,14}$/, "SĐT không hợp lệ"],
+      unique: true,
+      sparse: true,
+      match: [/^[+\d][\d\s-]{7,14}$/, "Số điện thoại không hợp lệ"],
     },
-    MatKhau: {
+
+    password: {
       type: String,
       required: [true, "Mật khẩu là bắt buộc"],
       minlength: [6, "Mật khẩu phải có ít nhất 6 ký tự"],
     },
-    QuyenHang: {
+
+    role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive", "blocked"],
+      default: "active",
     },
   },
   {
@@ -40,20 +50,18 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+/* ===== Hash password ===== */
 userSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("MatKhau")) return next();
+  if (!this.isModified("password")) return next();
 
-    const salt = await bcrypt.genSalt(10);
-    this.MatKhau = await bcrypt.hash(this.MatKhau, salt); 
-    next();
-  } catch (err) {
-    next(err);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
-userSchema.methods.comparePassword = async function (matkhauNhap) {
-  return await bcrypt.compare(matkhauNhap, this.MatKhau);
+/* ===== Compare password ===== */
+userSchema.methods.comparePassword = function (passwordInput) {
+  return bcrypt.compare(passwordInput, this.password);
 };
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
