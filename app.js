@@ -1,55 +1,51 @@
-const mongoose = require('mongoose');
-require('dotenv').config(); 
+const mongoose = require("mongoose");
+require("dotenv").config();
 
 const mongoURI = process.env.MONGO_URI;
 
 if (!mongoURI) {
-    console.error('❌ Lỗi: MONGO_URI chưa được thiết lập trong biến môi trường.');
-    process.exit(1);
+  console.error("❌ Lỗi: MONGO_URI chưa được thiết lập trong biến môi trường.");
+  process.exit(1);
 }
 
-mongoose.connect(mongoURI, {
+mongoose
+  .connect(mongoURI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('✅ Kết nối MongoDB thành công');
-}).catch(err => {
-    console.error('❌ Lỗi kết nối MongoDB:', err);
-});
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("✅ Kết nối MongoDB thành công");
+  })
+  .catch((err) => {
+    console.error("❌ Lỗi kết nối MongoDB:", err);
+  });
 
-var cors = require('cors'); 
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+var cors = require("cors");
+var createError = require("http-errors");
+var express = require("express");
+var path = require("path");
+var cookieParser = require("cookie-parser");
+var logger = require("morgan");
 
-var indexRouter = require('./routes/index');
-var categoriesRouter = require('./routes/categories');
-var productsRouter = require('./routes/products');
-var brandRouter = require('./routes/brands');
-var userRouter = require('./routes/users');
+var indexRouter = require("./routes/index");
+var userRouter = require("./routes/user.routes");
 
 var app = express();
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
 
-app.use(logger('dev'));
+app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 
-app.use('/', indexRouter);
-app.use('/categories', categoriesRouter);
-app.use('/products', productsRouter);
-app.use('/brands', brandRouter);
-app.use('/users', userRouter); 
+app.use("/", indexRouter);
+app.use("/api/users", userRoutes);
 
-
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 

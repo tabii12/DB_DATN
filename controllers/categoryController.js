@@ -1,140 +1,90 @@
-const Category = require("../models/categoryModel");
+const categories = require("../models/categoryModel");
 
+// ✅ Hàm lấy tất cả danh mục
 const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find().select("TenLoai");
-
-    res.status(200).json({
-      success: true,
-      data: categories,
-    });
+    const arr = await categories.find();
+    res.status(200).json(arr);
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh mục:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi lấy danh mục!",
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
+// ✅ Hàm lấy chi tiết 1 danh mục
 const getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id).select("TenLoai");
-
+    const category = await categories.findById(req.params.id);
     if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy danh mục!",
-      });
+      return res.status(404).json({ message: "Danh mục không tồn tại!" });
     }
-
-    res.status(200).json({
-      success: true,
-      data: category,
-    });
+    res.status(200).json(category);
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh mục theo ID:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi lấy danh mục!",
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
+// ✅ Hàm tạo danh mục
 const createCategory = async (req, res) => {
   try {
-    const { TenLoai } = req.body;
+    const { name } = req.body;
 
-    if (!TenLoai) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng nhập Tên loại!",
-      });
+    if (!name) {
+      return res.status(400).json({ message: "Tên danh mục là bắt buộc!" });
     }
 
-    const existed = await Category.findOne({ TenLoai });
-    if (existed) {
-      return res.status(400).json({
-        success: false,
-        message: "Tên loại đã tồn tại!",
-      });
+    const existingCategory = await categories.findOne({ name });
+    if (existingCategory) {
+      return res.status(400).json({ message: "Danh mục đã tồn tại!" });
     }
 
-    const newCategory = new Category({ TenLoai });
+    const newCategory = new categories({ name });
     await newCategory.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Thêm danh mục thành công!",
-      data: newCategory,
-    });
+    return res.status(201).json({ message: "Tạo danh mục thành công!", category: newCategory });
   } catch (error) {
-    console.error("❌ Lỗi khi thêm danh mục:", error);
-    res.status(500).json({ success: false, message: "Lỗi server!" });
+    console.error("Lỗi khi tạo danh mục:", error);
+    res.status(500).json({ message: "Lỗi server!" });
   }
 };
 
+// ✅ Hàm cập nhật danh mục
 const updateCategory = async (req, res) => {
   try {
-    const { TenLoai } = req.body;
     const { id } = req.params;
+    const { name } = req.body;
 
-    const category = await Category.findById(id);
+    const category = await categories.findById(id);
     if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Danh mục không tồn tại!",
-      });
+      return res.status(404).json({ message: "Danh mục không tồn tại!" });
     }
 
-    category.TenLoai = TenLoai || category.TenLoai;
+    category.name = name || category.name;
     await category.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Cập nhật danh mục thành công!",
-      data: category,
-    });
+    return res.status(200).json({ message: "Cập nhật danh mục thành công!", category });
   } catch (error) {
-    console.error("❌ Lỗi khi cập nhật danh mục:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi cập nhật danh mục!",
-    });
+    console.error("Lỗi khi cập nhật danh mục:", error);
+    res.status(500).json({ message: "Lỗi server!" });
   }
 };
 
+// ✅ Hàm xóa danh mục
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const category = await Category.findById(id);
 
+    const category = await categories.findById(id);
     if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Danh mục không tồn tại!",
-      });
+      return res.status(404).json({ message: "Danh mục không tồn tại!" });
     }
 
     await category.deleteOne();
 
-    res.status(200).json({
-      success: true,
-      message: "Xóa danh mục thành công!",
-    });
+    return res.status(200).json({ message: "Xóa danh mục thành công!" });
   } catch (error) {
-    console.error("❌ Lỗi khi xóa danh mục:", error);
-    res.status(500).json({
-      success: false,
-      message: "Lỗi server khi xóa danh mục!",
-    });
+    console.error("Lỗi khi xóa danh mục:", error);
+    res.status(500).json({ message: "Lỗi server!" });
   }
 };
 
-module.exports = {
-  getAllCategories,
-  getCategoryById,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-};
+module.exports = { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory };

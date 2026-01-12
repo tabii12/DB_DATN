@@ -1,16 +1,18 @@
-const express = require("express");
-const router = express.Router();
-const multer = require("multer");
+var express = require('express');
+var router = express.Router();
 
-const upload = multer();
+const { register, login ,toggleStatus , changeRole} = require('../controllers/userController');
 
-const { 
-    createUser, 
-    loginUser 
-} = require("../controllers/userController");
+//Đăng ký
+router.post('/register', register);
 
-router.post("/register", upload.none(), createUser);
+//Đăng nhập
+router.post('/login', login);
 
-router.post("/login", upload.none(), loginUser);
+// Chuyển trạng thái user
+router.put("/toggle-status/:userId", toggleStatus);
+
+// Chuyển quyền user
+router.put("/change-role/:userId", changeRole);
 
 module.exports = router;

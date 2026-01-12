@@ -43,6 +43,20 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "inactive", "blocked"],
       default: "active",
     },
+
+    /* ===== EMAIL VERIFY ===== */
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerifyCode: {
+      type: String,
+    },
+
+    emailVerifyExpire: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

@@ -1,30 +1,10 @@
 var express = require('express');
 var router = express.Router();
-const multer = require("multer");
-const fs = require("fs");
 
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
+const { getAllProducts, getProductById } = require('../controllers/productController');
 
-const upload = multer({ dest: "uploads/" });
+router.get('/', getAllProducts)
 
-const { 
-  getAllProducts, 
-  getProductById, 
-  createProduct, 
-  updateProduct, 
-  deleteProduct 
-} = require('../controllers/productController');
-
-router.get('/', getAllProducts);
-
-router.get('/:id', getProductById);
-
-router.post("/", upload.array("image", 5), createProduct);
-
-router.put("/:id", upload.array("image", 5), updateProduct);
-
-router.delete("/:id", deleteProduct);
+router.get('/:id', getProductById)
 
 module.exports = router;
