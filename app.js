@@ -27,7 +27,7 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 
-var indexRouter = require("./routes/index");
+var indexRouter = require("./routes/index.routes");
 var userRouter = require("./routes/user.routes");
 
 var app = express();
@@ -43,7 +43,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 
 app.use("/", indexRouter);
-app.use("/api/users", userRoutes);
+app.use("/api/users", userRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
