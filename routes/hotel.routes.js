@@ -6,6 +6,7 @@ const hotelController = require("../controllers/hotel.controller");
 router.post("/create", upload.array("images", 5), hotelController.createHotel);
 
 router.get("/", hotelController.getAllHotels);
+
 router.get("/detail/:slug", hotelController.getHotelBySlug);
 
 router.put("/update/:slug", upload.array("images", 5), hotelController.updateHotel);
