@@ -29,6 +29,7 @@ var logger = require("morgan");
 
 var indexRouter = require("./routes/index.routes");
 var userRouter = require("./routes/user.routes");
+var hotelRouter = require("./routes/hotel.routes");
 
 var app = express();
 
@@ -44,6 +45,7 @@ app.use(cors());
 
 app.use("/", indexRouter);
 app.use("/api/users", userRouter);
+app.use("/api/hotels", hotelRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));

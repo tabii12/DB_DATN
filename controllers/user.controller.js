@@ -213,8 +213,72 @@ const login = async (req, res) => {
     });
   }
 };
+
+const getAllUsers = async (req, res) => {
+  try {
+    // Lấy tất cả user, loại bỏ mật khẩu, sắp xếp người mới nhất lên đầu
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi hệ thống: " + error.message,
+    });
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Kiểm tra status có nằm trong enum ["active", "inactive", "blocked"] không
+    const validStatuses = ["active", "inactive", "blocked"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Trạng thái không hợp lệ. Chỉ chấp nhận: active, inactive, blocked",
+      });
+    }
+
+    // Cập nhật trạng thái dựa trên ID
+    const user = await User.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng này",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã thay đổi trạng thái người dùng sang: ${status}`,
+      data: user,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi hệ thống: " + error.message,
+    });
+  }
+};
+
+
+
 module.exports = {
   register,
   verifyEmail,
   login,
+  getAllUsers,
+  updateUserStatus,
 };

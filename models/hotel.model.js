@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const slug = require("mongoose-slug-updater");
+
+mongoose.plugin(slug);
 
 const hotelSchema = new mongoose.Schema(
   {
@@ -7,31 +10,31 @@ const hotelSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    slug: {
+      type: String,
+      slug: "name",
+      unique: true,
+    },
     address: {
       type: String,
       required: true,
       trim: true,
     },
-
     city: {
       type: String,
       required: true,
       trim: true,
-      index: true, // sau này filter theo thành phố rất nhiều
+      index: true,
     },
-
     description: {
       type: String,
       trim: true,
     },
-
     price_per_night: {
       type: Number,
       required: true,
       min: 0,
     },
-
     status: {
       type: String,
       enum: ["active", "inactive", "hidden"],
@@ -46,5 +49,4 @@ const hotelSchema = new mongoose.Schema(
 
 const Hotel =
   mongoose.models.Hotel || mongoose.model("Hotel", hotelSchema, "hotels");
-
 module.exports = Hotel;

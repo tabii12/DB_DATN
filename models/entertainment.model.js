@@ -8,6 +8,12 @@ const entertainmentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    slug: {
+      type: String,
+      slug: "name",
+      unique: true,
+    },
+
     location: {
       type: String,
       required: true,

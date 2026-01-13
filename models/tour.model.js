@@ -8,6 +8,12 @@ const tourSchema = new mongoose.Schema(
       trim: true,
     },
 
+    slug: {
+      type: String,
+      slug: "name",
+      unique: true,
+    },
+
     description: {
       type: String,
       trim: true,
