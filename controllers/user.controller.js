@@ -1,5 +1,7 @@
 const { User } = require("../models/user.model");
 const sendEmail = require("../utils/sendEmail");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const register = async (req, res) => {
   try {
@@ -66,7 +68,6 @@ const register = async (req, res) => {
   }
 };
 
-/* ===== VERIFY EMAIL ===== */
 const verifyEmail = async (req, res) => {
   try {
     // 1. Lấy dữ liệu an toàn từ cả Body và Params
@@ -77,7 +78,8 @@ const verifyEmail = async (req, res) => {
     if (!email || !code) {
       return res.status(400).json({
         success: false,
-        message: "Không tìm thấy thông tin email hoặc mã xác thực trong yêu cầu."
+        message:
+          "Không tìm thấy thông tin email hoặc mã xác thực trong yêu cầu.",
       });
     }
 
@@ -86,23 +88,29 @@ const verifyEmail = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Người dùng không tồn tại trên hệ thống."
+        message: "Người dùng không tồn tại trên hệ thống.",
       });
     }
 
     // 4. Kiểm tra nếu đã xác thực rồi
     if (user.isVerified) {
-      return res.status(400).send("<h1>Tài khoản này đã được xác thực trước đó.</h1>");
+      return res
+        .status(400)
+        .send("<h1>Tài khoản này đã được xác thực trước đó.</h1>");
     }
 
     // 5. Kiểm tra mã xác thực
     if (user.emailVerifyCode !== code) {
-      return res.status(400).send("<h1>Mã xác thực không chính xác hoặc đã bị thay đổi.</h1>");
+      return res
+        .status(400)
+        .send("<h1>Mã xác thực không chính xác hoặc đã bị thay đổi.</h1>");
     }
 
     // 6. Kiểm tra hết hạn
     if (user.emailVerifyExpire < Date.now()) {
-      return res.status(400).send("<h1>Mã xác thực đã hết hạn (hiệu lực 10 phút).</h1>");
+      return res
+        .status(400)
+        .send("<h1>Mã xác thực đã hết hạn (hiệu lực 10 phút).</h1>");
     }
 
     // 7. Cập nhật trạng thái thành công
@@ -113,13 +121,16 @@ const verifyEmail = async (req, res) => {
 
     // 8. Phản hồi dựa trên cách người dùng truy cập
     if (req.params.code) {
-      // Nếu nhấn từ link email, trả về giao diện HTML
-      return res.send(`
+      return res.status(200).send(`
         <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-          <h1 style="color: #2ecc71;">✅ Xác thực thành công!</h1>
-          <p>Tài khoản của bạn đã được kích hoạt. Bây giờ bạn có thể đăng nhập vào hệ thống.</p>
+            <h1 style="color: #2ecc71;">✅ Xác thực thành công!</h1>
+            <p>Tài khoản của bạn đã được kích hoạt.</p>
+            <script>
+                // Tự động chuyển hướng về trang login sau 3 giây (nếu có frontend)
+                // setTimeout(() => { window.location.href = "http://localhost:3000/login" }, 3000);
+            </script>
         </div>
-      `);
+    `);
     }
 
     // Nếu gọi từ Postman/Frontend, trả về JSON
@@ -127,17 +138,83 @@ const verifyEmail = async (req, res) => {
       success: true,
       message: "Xác thực email thành công",
     });
-
   } catch (error) {
     console.error("🔥 Lỗi Verify chi tiết:", error);
     return res.status(500).json({
       success: false,
-      message: "Đã xảy ra lỗi hệ thống: " + error.message
+      message: "Đã xảy ra lỗi hệ thống: " + error.message,
     });
   }
 };
 
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Kiểm tra input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập đầy đủ email và mật khẩu",
+      });
+    }
+
+    // 2. Tìm người dùng và lấy luôn cả trường password (nếu bạn dùng select: false trong model)
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Email không tồn tại trên hệ thống",
+      });
+    }
+
+    // 3. QUAN TRỌNG: Kiểm tra xem user đã xác thực email chưa
+    if (!user.isVerified) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Tài khoản của bạn chưa được xác thực. Vui lòng kiểm tra email!",
+      });
+    }
+
+    // 4. Kiểm tra mật khẩu
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu không chính xác",
+      });
+    }
+
+    // 5. Tạo JWT Token (Nếu bạn dùng cơ chế Token)
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your_secret_key",
+      { expiresIn: "1d" }
+    );
+
+    // 6. Trả về thành công
+    return res.status(200).json({
+      success: true,
+      message: "Đăng nhập thành công",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("🔥 Lỗi Login:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi hệ thống: " + error.message,
+    });
+  }
+};
 module.exports = {
   register,
   verifyEmail,
+  login,
 };
