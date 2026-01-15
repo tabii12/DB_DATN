@@ -31,6 +31,7 @@ var indexRouter = require("./routes/index.routes");
 var userRouter = require("./routes/user.routes");
 var hotelRouter = require("./routes/hotel.routes");
 var flightRouter = require("./routes/flight.routes");
+var tourRouter = require("./routes/tour.routes");
 
 var app = express();
 
@@ -48,6 +49,7 @@ app.use("/", indexRouter);
 app.use("/api/users", userRouter);
 app.use("/api/hotels", hotelRouter);
 app.use("/api/flights", flightRouter);
+app.use("/api/tours", tourRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
