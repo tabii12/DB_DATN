@@ -2,14 +2,26 @@ const Flight = require("../models/flight.model");
 const Image = require("../models/image.model");
 const cloudinary = require("../utils/cloudinary");
 
+/* ======================================================
+   CREATE FLIGHT
+   - Tạo chuyến bay mới
+   - Validate thời gian bay
+   - Check trùng flight_code
+   - Upload ảnh (nếu có)
+====================================================== */
 const createFlight = async (req, res) => {
   try {
-    const { 
-      flight_code, departure, destination, 
-      departure_time, arrival_time, price, total_seats 
+    const {
+      flight_code,
+      departure,
+      destination,
+      departure_time,
+      arrival_time,
+      price,
+      total_seats,
     } = req.body;
 
-    // 1. Kiểm tra logic: Thời gian đến phải sau thời gian đi
+    /* ===== Validate thời gian ===== */
     if (new Date(arrival_time) <= new Date(departure_time)) {
       return res.status(400).json({
         success: false,
@@ -17,16 +29,19 @@ const createFlight = async (req, res) => {
       });
     }
 
-    // 2. Kiểm tra mã chuyến bay đã tồn tại chưa
-    const existedFlight = await Flight.findOne({ flight_code: flight_code.toUpperCase() });
+    /* ===== Check flight_code trùng ===== */
+    const existedFlight = await Flight.findOne({
+      flight_code: flight_code.toUpperCase(),
+    });
+
     if (existedFlight) {
       return res.status(400).json({
         success: false,
-        message: "Mã chuyến bay này đã tồn tại trên hệ thống",
+        message: "Mã chuyến bay đã tồn tại",
       });
     }
 
-    // 3. Tạo chuyến bay mới
+    /* ===== Tạo flight ===== */
     const newFlight = await Flight.create({
       flight_code: flight_code.toUpperCase(),
       departure,
@@ -37,21 +52,23 @@ const createFlight = async (req, res) => {
       total_seats: total_seats || 100,
     });
 
-    // 4. Xử lý lưu ảnh vào bảng Image (nếu có)
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) =>
-        cloudinary.uploader.upload(file.path, { folder: "pick_your_way/flights" })
+    /* ===== Upload images (nếu có) ===== */
+    if (req.files?.length) {
+      const uploads = await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.upload(file.path, {
+            folder: "pick_your_way/flights",
+          })
+        )
       );
-      const cloudinaryResults = await Promise.all(uploadPromises);
 
-      const imageData = cloudinaryResults.map((result) => ({
-        entity_id: newFlight._id, // Gắn ID của chuyến bay vừa tạo
-        image_url: result.secure_url,
-        public_id: result.public_id,
-        entity_type: "Flight", // Giúp phân biệt ảnh của Flight với Hotel
+      const images = uploads.map((img) => ({
+        entity_id: newFlight._id,
+        image_url: img.secure_url,
+        public_id: img.public_id,
       }));
 
-      await Image.insertMany(imageData);
+      await Image.insertMany(images);
     }
 
     return res.status(201).json({
@@ -60,35 +77,41 @@ const createFlight = async (req, res) => {
       data: newFlight,
     });
   } catch (error) {
-    console.error("🔥 Lỗi Create Flight:", error);
+    console.error("🔥 CreateFlight Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Lỗi server: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   GET ALL FLIGHTS
+   - Lấy danh sách chuyến bay
+   - Gắn images bằng lookup
+   - Tính available_seats
+====================================================== */
 const getAllFlights = async (req, res) => {
   try {
-    // Sử dụng aggregate để kết hợp dữ liệu từ bảng flights và images
     const flights = await Flight.aggregate([
       {
         $lookup: {
-          from: "images",           // Tên collection chứa ảnh (phải khớp với tên trong Compass)
-          localField: "_id",        // Khóa chính của bảng Flight
-          foreignField: "entity_id",// Khóa ngoại trong bảng Image trỏ về Flight
-          as: "flight_images"       // Tên mảng ảnh sẽ hiển thị trong kết quả
-        }
+          from: "images",
+          localField: "_id",
+          foreignField: "entity_id",
+          as: "images",
+        },
       },
       {
         $addFields: {
-          // Tính toán số ghế trống ngay trong lúc lấy dữ liệu
-          available_seats: { $subtract: ["$total_seats", "$booked_seats"] }
-        }
+          available_seats: {
+            $subtract: ["$total_seats", "$booked_seats"],
+          },
+        },
       },
       {
-        $sort: { departure_time: 1 } // Sắp xếp theo thời gian khởi hành sớm nhất
-      }
+        $sort: { departure_time: 1 },
+      },
     ]);
 
     return res.status(200).json({
@@ -97,77 +120,99 @@ const getAllFlights = async (req, res) => {
       data: flights,
     });
   } catch (error) {
-    console.error("🔥 Lỗi GetAllFlights:", error);
+    console.error("🔥 GetAllFlights Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   GET FLIGHT BY CODE
+   - Tìm flight theo flight_code
+   - Gắn images
+   - Tính available_seats
+====================================================== */
 const getFlightByCode = async (req, res) => {
   try {
     const { code } = req.params;
 
-    // Sử dụng aggregate để join bảng Image và tính toán ghế trống
     const flight = await Flight.aggregate([
       {
-        $match: { flight_code: code.toUpperCase() } // Tìm đúng mã chuyến bay (viết hoa)
+        $match: { flight_code: code.toUpperCase() },
       },
       {
         $lookup: {
-          from: "images",           // Tên collection chứa ảnh
-          localField: "_id",        // ID của Flight
-          foreignField: "entity_id",// Trường trỏ về ID của Flight trong bảng Image
-          as: "flight_images"
-        }
+          from: "images",
+          localField: "_id",
+          foreignField: "entity_id",
+          as: "images",
+        },
       },
       {
         $addFields: {
-          available_seats: { $subtract: ["$total_seats", "$booked_seats"] }
-        }
-      }
+          available_seats: {
+            $subtract: ["$total_seats", "$booked_seats"],
+          },
+        },
+      },
     ]);
 
-    // Vì aggregate trả về mảng, nên ta kiểm tra phần tử đầu tiên
-    if (!flight || flight.length === 0) {
+    if (!flight.length) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy chuyến bay với mã này",
+        message: "Không tìm thấy chuyến bay",
       });
     }
 
     return res.status(200).json({
       success: true,
-      data: flight[0], // Trả về object đầu tiên thay vì mảng
+      data: flight[0],
     });
   } catch (error) {
-    console.error("🔥 Lỗi GetFlightByCode:", error);
+    console.error("🔥 GetFlightByCode Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   UPDATE FLIGHT BY CODE
+   - Update thông tin flight
+   - Validate lại thời gian
+   - Upload thêm ảnh (nếu có)
+====================================================== */
 const updateFlightByCode = async (req, res) => {
   try {
     const { code } = req.params;
-    const { 
-      departure, destination, departure_time, 
-      arrival_time, price, total_seats, status 
+    const {
+      departure,
+      destination,
+      departure_time,
+      arrival_time,
+      price,
+      total_seats,
+      status,
     } = req.body;
 
-    // 1. Tìm chuyến bay hiện tại
-    let flight = await Flight.findOne({ flight_code: code.toUpperCase() });
+    const flight = await Flight.findOne({
+      flight_code: code.toUpperCase(),
+    });
+
     if (!flight) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy chuyến bay" });
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy chuyến bay",
+      });
     }
 
-    // 2. Kiểm tra logic thời gian nếu người dùng cập nhật ngày giờ
+    /* ===== Validate thời gian ===== */
     const finalDeparture = departure_time || flight.departure_time;
     const finalArrival = arrival_time || flight.arrival_time;
-    
+
     if (new Date(finalArrival) <= new Date(finalDeparture)) {
       return res.status(400).json({
         success: false,
@@ -175,38 +220,34 @@ const updateFlightByCode = async (req, res) => {
       });
     }
 
-    // 3. Cập nhật thông tin cơ bản
-    const updateData = {
-      departure: departure || flight.departure,
-      destination: destination || flight.destination,
-      departure_time: finalDeparture,
-      arrival_time: finalArrival,
-      price: price || flight.price,
-      total_seats: total_seats || flight.total_seats,
-      status: status || flight.status,
-    };
+    /* ===== Update data ===== */
+    flight.departure = departure ?? flight.departure;
+    flight.destination = destination ?? flight.destination;
+    flight.departure_time = finalDeparture;
+    flight.arrival_time = finalArrival;
+    flight.price = price ?? flight.price;
+    flight.total_seats = total_seats ?? flight.total_seats;
+    flight.status = status ?? flight.status;
 
-    flight = await Flight.findOneAndUpdate(
-      { flight_code: code.toUpperCase() },
-      updateData,
-      { new: true, runValidators: true }
-    );
+    await flight.save();
 
-    // 4. Xử lý nếu có ảnh mới được gửi lên
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map((file) =>
-        cloudinary.uploader.upload(file.path, { folder: "pick_your_way/flights" })
+    /* ===== Upload images mới ===== */
+    if (req.files?.length) {
+      const uploads = await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.upload(file.path, {
+            folder: "pick_your_way/flights",
+          })
+        )
       );
-      const cloudinaryResults = await Promise.all(uploadPromises);
 
-      const newImages = cloudinaryResults.map((result) => ({
+      const images = uploads.map((img) => ({
         entity_id: flight._id,
-        image_url: result.secure_url,
-        public_id: result.public_id,
-        entity_type: "Flight"
+        image_url: img.secure_url,
+        public_id: img.public_id,
       }));
 
-      await Image.insertMany(newImages);
+      await Image.insertMany(images);
     }
 
     return res.status(200).json({
@@ -215,44 +256,63 @@ const updateFlightByCode = async (req, res) => {
       data: flight,
     });
   } catch (error) {
-    console.error("🔥 Lỗi UpdateFlight:", error);
-    return res.status(500).json({ success: false, message: error.message });
+    console.error("🔥 UpdateFlight Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
+/* ======================================================
+   DELETE FLIGHT IMAGE
+   - Xóa ảnh theo imageId
+   - Xóa Cloudinary + Database
+====================================================== */
 const deleteFlightImage = async (req, res) => {
   try {
     const { imageId } = req.params;
+
     const image = await Image.findById(imageId);
-    
-    if (image) {
-      // Xóa trên Cloudinary
-      await cloudinary.uploader.destroy(image.public_id);
-      // Xóa trong DB
-      await Image.findByIdAndDelete(imageId);
+    if (!image) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy ảnh",
+      });
     }
-    
-    return res.status(200).json({ success: true, message: "Đã xóa ảnh" });
+
+    await cloudinary.uploader.destroy(image.public_id);
+    await Image.findByIdAndDelete(imageId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Xóa ảnh thành công",
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
+/* ======================================================
+   UPDATE FLIGHT STATUS
+   - Chỉ update trạng thái
+====================================================== */
 const updateFlightStatus = async (req, res) => {
   try {
-    const { code } = req.params; // Lấy flight_code từ URL
-    const { status } = req.body; // Lấy status mới từ Body
+    const { code } = req.params;
+    const { status } = req.body;
 
-    // 1. Kiểm tra status gửi lên có hợp lệ với Enum trong Model không
     const validStatuses = ["available", "full", "cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Trạng thái không hợp lệ. Chỉ chấp nhận: available, full, cancelled",
+        message: "Trạng thái không hợp lệ (available | full | cancelled)",
       });
     }
 
-    // 2. Tìm và cập nhật trạng thái theo flight_code
     const flight = await Flight.findOneAndUpdate(
       { flight_code: code.toUpperCase() },
       { status },
@@ -262,22 +322,22 @@ const updateFlightStatus = async (req, res) => {
     if (!flight) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy chuyến bay để cập nhật trạng thái",
+        message: "Không tìm thấy chuyến bay",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: `Đã cập nhật trạng thái chuyến bay ${flight.flight_code} thành: ${status}`,
+      message: "Cập nhật trạng thái thành công",
       data: {
         flight_code: flight.flight_code,
-        status: flight.status
+        status: flight.status,
       },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };

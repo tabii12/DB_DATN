@@ -3,11 +3,16 @@ const sendEmail = require("../utils/sendEmail");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+/* ======================================================
+   REGISTER
+   - Đăng ký tài khoản mới
+   - Gửi email xác thực (OTP)
+====================================================== */
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // 1. Check email tồn tại
+    /* ===== Check email tồn tại ===== */
     const existedUser = await User.findOne({ email });
     if (existedUser) {
       return res.status(400).json({
@@ -16,13 +21,13 @@ const register = async (req, res) => {
       });
     }
 
-    // 2. Tạo mã xác nhận (OTP 6 số)
+    /* ===== Tạo mã xác thực (OTP 6 số) ===== */
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 3. Thời gian hết hạn (10 phút)
+    /* ===== Thời gian hết hạn: 10 phút ===== */
     const verifyExpire = Date.now() + 10 * 60 * 1000;
 
-    // 4. Tạo user
+    /* ===== Tạo user ===== */
     const user = await User.create({
       name,
       email,
@@ -32,7 +37,7 @@ const register = async (req, res) => {
       isVerified: false,
     });
 
-    // 5. GỬI EMAIL XÁC NHẬN
+    /* ===== Gửi email xác thực ===== */
     const verifyUrl = `http://localhost:3000/api/users/verify-email/${email}/${verifyCode}`;
 
     await sendEmail({
@@ -41,26 +46,23 @@ const register = async (req, res) => {
       html: `
         <h2>Xin chào ${name} 👋</h2>
         <p>Cảm ơn bạn đã đăng ký. Vui lòng nhấn vào nút bên dưới để xác thực tài khoản:</p>
-        <a href="${verifyUrl}" 
+        <a href="${verifyUrl}"
           style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
           XÁC THỰC TÀI KHOẢN
         </a>
         <p>Hoặc nhập mã thủ công: <b>${verifyCode}</b></p>
-        <p>Link này có hiệu lực trong 10 phút.</p>
+        <p>Link có hiệu lực trong 10 phút.</p>
       `,
     });
 
-    console.log("-----------------------------------------");
-    console.log("🔥 MÃ XÁC NHẬN CỦA BẠN LÀ:", verifyCode);
-    console.log("-----------------------------------------");
+    console.log("🔥 VERIFY CODE:", verifyCode);
 
-    // 6. Trả về
     return res.status(201).json({
       success: true,
       message: "Đăng ký thành công, vui lòng kiểm tra email để xác nhận",
     });
   } catch (error) {
-    console.error("🔥 LỖI CHI TIẾT:", error);
+    console.error("🔥 Register Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -68,117 +70,113 @@ const register = async (req, res) => {
   }
 };
 
+/* ======================================================
+   VERIFY EMAIL
+   - Xác thực tài khoản bằng mã OTP
+   - Hỗ trợ gọi từ link hoặc API
+====================================================== */
 const verifyEmail = async (req, res) => {
   try {
-    // 1. Lấy dữ liệu an toàn từ cả Body và Params
+    /* ===== Nhận dữ liệu từ body hoặc params ===== */
     const email = req.body?.email || req.params?.email;
     const code = req.body?.code || req.params?.code;
 
-    // 2. Kiểm tra nếu không có email hoặc code thì dừng lại ngay, tránh lỗi crash
     if (!email || !code) {
       return res.status(400).json({
         success: false,
-        message:
-          "Không tìm thấy thông tin email hoặc mã xác thực trong yêu cầu.",
+        message: "Thiếu email hoặc mã xác thực",
       });
     }
 
-    // 3. Tìm người dùng
+    /* ===== Tìm user ===== */
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Người dùng không tồn tại trên hệ thống.",
+        message: "Người dùng không tồn tại",
       });
     }
 
-    // 4. Kiểm tra nếu đã xác thực rồi
+    /* ===== Kiểm tra đã xác thực chưa ===== */
     if (user.isVerified) {
       return res
         .status(400)
-        .send("<h1>Tài khoản này đã được xác thực trước đó.</h1>");
+        .send("<h1>Tài khoản đã được xác thực trước đó.</h1>");
     }
 
-    // 5. Kiểm tra mã xác thực
+    /* ===== Kiểm tra mã OTP ===== */
     if (user.emailVerifyCode !== code) {
-      return res
-        .status(400)
-        .send("<h1>Mã xác thực không chính xác hoặc đã bị thay đổi.</h1>");
+      return res.status(400).send("<h1>Mã xác thực không chính xác.</h1>");
     }
 
-    // 6. Kiểm tra hết hạn
+    /* ===== Kiểm tra hết hạn ===== */
     if (user.emailVerifyExpire < Date.now()) {
-      return res
-        .status(400)
-        .send("<h1>Mã xác thực đã hết hạn (hiệu lực 10 phút).</h1>");
+      return res.status(400).send("<h1>Mã xác thực đã hết hạn.</h1>");
     }
 
-    // 7. Cập nhật trạng thái thành công
+    /* ===== Cập nhật trạng thái xác thực ===== */
     user.isVerified = true;
     user.emailVerifyCode = undefined;
     user.emailVerifyExpire = undefined;
     await user.save();
 
-    // 8. Phản hồi dựa trên cách người dùng truy cập
+    /* ===== Trả HTML nếu verify qua link ===== */
     if (req.params.code) {
       return res.status(200).send(`
-        <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-            <h1 style="color: #2ecc71;">✅ Xác thực thành công!</h1>
-            <p>Tài khoản của bạn đã được kích hoạt.</p>
-            <script>
-                // Tự động chuyển hướng về trang login sau 3 giây (nếu có frontend)
-                // setTimeout(() => { window.location.href = "http://localhost:3000/login" }, 3000);
-            </script>
+        <div style="text-align:center;padding:50px;font-family:Arial">
+          <h1 style="color:#2ecc71">✅ Xác thực thành công!</h1>
+          <p>Tài khoản của bạn đã được kích hoạt.</p>
         </div>
-    `);
+      `);
     }
 
-    // Nếu gọi từ Postman/Frontend, trả về JSON
     return res.json({
       success: true,
       message: "Xác thực email thành công",
     });
   } catch (error) {
-    console.error("🔥 Lỗi Verify chi tiết:", error);
+    console.error("🔥 VerifyEmail Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Đã xảy ra lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   LOGIN
+   - Đăng nhập bằng email + password
+   - Chỉ cho phép user đã verify
+====================================================== */
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Kiểm tra input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Vui lòng nhập đầy đủ email và mật khẩu",
+        message: "Vui lòng nhập email và mật khẩu",
       });
     }
 
-    // 2. Tìm người dùng và lấy luôn cả trường password (nếu bạn dùng select: false trong model)
+    /* ===== Tìm user ===== */
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Email không tồn tại trên hệ thống",
+        message: "Email không tồn tại",
       });
     }
 
-    // 3. QUAN TRỌNG: Kiểm tra xem user đã xác thực email chưa
+    /* ===== Kiểm tra đã verify chưa ===== */
     if (!user.isVerified) {
       return res.status(401).json({
         success: false,
-        message:
-          "Tài khoản của bạn chưa được xác thực. Vui lòng kiểm tra email!",
+        message: "Tài khoản chưa được xác thực email",
       });
     }
 
-    // 4. Kiểm tra mật khẩu
+    /* ===== So sánh mật khẩu ===== */
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -187,14 +185,13 @@ const login = async (req, res) => {
       });
     }
 
-    // 5. Tạo JWT Token (Nếu bạn dùng cơ chế Token)
+    /* ===== Tạo JWT ===== */
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "your_secret_key",
       { expiresIn: "1d" }
     );
 
-    // 6. Trả về thành công
     return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công",
@@ -206,17 +203,21 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("🔥 Lỗi Login:", error);
+    console.error("🔥 Login Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   GET ALL USERS (ADMIN)
+   - Lấy danh sách user
+   - Không trả password
+====================================================== */
 const getAllUsers = async (req, res) => {
   try {
-    // Lấy tất cả user, loại bỏ mật khẩu, sắp xếp người mới nhất lên đầu
     const users = await User.find().select("-password").sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -227,26 +228,28 @@ const getAllUsers = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
 
+/* ======================================================
+   UPDATE USER STATUS (ADMIN)
+   - active | inactive | blocked
+====================================================== */
 const updateUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    // Kiểm tra status có nằm trong enum ["active", "inactive", "blocked"] không
     const validStatuses = ["active", "inactive", "blocked"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Trạng thái không hợp lệ. Chỉ chấp nhận: active, inactive, blocked",
+        message: "Trạng thái không hợp lệ (active | inactive | blocked)",
       });
     }
 
-    // Cập nhật trạng thái dựa trên ID
     const user = await User.findByIdAndUpdate(
       id,
       { status },
@@ -256,24 +259,22 @@ const updateUserStatus = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy người dùng này",
+        message: "Không tìm thấy người dùng",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: `Đã thay đổi trạng thái người dùng sang: ${status}`,
+      message: "Cập nhật trạng thái người dùng thành công",
       data: user,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống: " + error.message,
+      message: error.message,
     });
   }
 };
-
-
 
 module.exports = {
   register,

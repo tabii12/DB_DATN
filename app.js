@@ -32,6 +32,7 @@ var userRouter = require("./routes/user.routes");
 var hotelRouter = require("./routes/hotel.routes");
 var flightRouter = require("./routes/flight.routes");
 var tourRouter = require("./routes/tour.routes");
+var entertainmentRouter = require("./routes/entertainment.routes");
 
 var app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/users", userRouter);
 app.use("/api/hotels", hotelRouter);
 app.use("/api/flights", flightRouter);
 app.use("/api/tours", tourRouter);
+app.use("/api/entertainments", entertainmentRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));

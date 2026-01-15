@@ -1,9 +1,24 @@
 const multer = require("multer");
 
-// Sử dụng bộ nhớ tạm (diskStorage) để lưu file trước khi upload lên Cloudinary
+/* ================= MULTER CONFIG ================= */
+/**
+ * Cấu hình Multer dùng để upload file
+ * - Lưu file tạm thời trên server
+ * - Kiểm tra định dạng file
+ * - Giới hạn dung lượng file
+ */
+
+/* ========= 1. Storage ========= */
+/**
+ * Sử dụng diskStorage mặc định
+ * → File sẽ được lưu tạm để upload lên Cloudinary
+ */
 const storage = multer.diskStorage({});
 
-// Hàm kiểm tra định dạng file (chỉ cho phép ảnh)
+/* ========= 2. File Filter ========= */
+/**
+ * Chỉ cho phép upload file hình ảnh
+ */
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
@@ -12,10 +27,13 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+/* ========= 3. Multer Instance ========= */
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB mỗi file
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Giới hạn 5MB / file
+  },
 });
 
 module.exports = upload;

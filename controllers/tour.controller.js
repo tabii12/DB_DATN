@@ -2,7 +2,11 @@ const Tour = require("../models/tour.model");
 const Image = require("../models/image.model");
 const cloudinary = require("../utils/cloudinary");
 
-/* ================= CREATE TOUR ================= */
+/* ======================================================
+   CREATE TOUR
+   - Tạo tour mới
+   - Upload ảnh (nếu có)
+====================================================== */
 const createTour = async (req, res) => {
   try {
     const {
@@ -15,8 +19,9 @@ const createTour = async (req, res) => {
       max_people,
     } = req.body;
 
+    /* ===== Create tour ===== */
     const newTour = await Tour.create({
-      name, // slug sẽ tự sinh
+      name,
       description,
       price,
       status,
@@ -25,6 +30,7 @@ const createTour = async (req, res) => {
       max_people,
     });
 
+    /* ===== Upload images (nếu có) ===== */
     if (req.files?.length) {
       const uploads = await Promise.all(
         req.files.map((file) =>
@@ -56,74 +62,108 @@ const createTour = async (req, res) => {
   }
 };
 
-/* ================= GET ALL TOURS ================= */
+/* ======================================================
+   GET ALL TOURS
+   - Chỉ lấy tour đang active
+   - Gắn images cho từng tour
+====================================================== */
 const getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find({ status: "active" }).sort({
-      createdAt: -1,
+    const tours = await Tour.find({ status: "active" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    /* ===== Attach images ===== */
+    const tourIds = tours.map((tour) => tour._id);
+
+    const images = await Image.find({
+      entity_id: { $in: tourIds },
+    }).lean();
+
+    const imageMap = {};
+    images.forEach((img) => {
+      if (!imageMap[img.entity_id]) {
+        imageMap[img.entity_id] = [];
+      }
+      imageMap[img.entity_id].push(img);
     });
 
-    const data = await Promise.all(
-      tours.map(async (tour) => {
-        const images = await Image.find({ entity_id: tour._id });
-        return { ...tour.toObject(), images };
-      })
-    );
+    const result = tours.map((tour) => ({
+      ...tour,
+      images: imageMap[tour._id] || [],
+    }));
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      count: data.length,
-      data,
+      count: result.length,
+      data: result,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-/* ================= GET TOUR BY SLUG ================= */
+/* ======================================================
+   GET TOUR BY SLUG
+   - Tìm tour theo slug
+   - Chỉ lấy tour đang active
+====================================================== */
 const getTourBySlug = async (req, res) => {
   try {
+    const { slug } = req.params;
+
     const tour = await Tour.findOne({
-      slug: req.params.slug,
+      slug,
       status: "active",
-    });
+    }).lean();
 
     if (!tour) {
       return res.status(404).json({
         success: false,
-        message: "Tour không tồn tại",
+        message: "Không tìm thấy tour",
       });
     }
 
-    const images = await Image.find({ entity_id: tour._id });
+    const images = await Image.find({
+      entity_id: tour._id,
+    }).lean();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      data: { ...tour.toObject(), images },
+      data: {
+        ...tour,
+        images,
+      },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-/* ================= UPDATE TOUR ================= */
+/* ======================================================
+   UPDATE TOUR BY SLUG
+   - Update thông tin tour
+   - Upload thêm ảnh (nếu có)
+====================================================== */
 const updateTour = async (req, res) => {
   try {
-    const tour = await Tour.findOne({ slug: req.params.slug });
+    const { slug } = req.params;
 
+    const tour = await Tour.findOne({ slug });
     if (!tour) {
       return res.status(404).json({
         success: false,
-        message: "Tour không tồn tại",
+        message: "Không tìm thấy tour",
       });
     }
 
+    /* ===== Update fields ===== */
     const fields = [
       "name",
       "description",
@@ -140,9 +180,9 @@ const updateTour = async (req, res) => {
       }
     });
 
-    // ⚠️ name đổi → slug tự đổi (do mongoose-slug-updater)
     await tour.save();
 
+    /* ===== Upload new images ===== */
     if (req.files?.length) {
       const uploads = await Promise.all(
         req.files.map((file) =>
@@ -152,33 +192,38 @@ const updateTour = async (req, res) => {
         )
       );
 
-      await Image.insertMany(
-        uploads.map((img) => ({
-          entity_id: tour._id,
-          image_url: img.secure_url,
-          public_id: img.public_id,
-        }))
-      );
+      const images = uploads.map((img) => ({
+        entity_id: tour._id,
+        image_url: img.secure_url,
+        public_id: img.public_id,
+      }));
+
+      await Image.insertMany(images);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Cập nhật tour thành công",
       data: tour,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-/* ================= DELETE IMAGE ================= */
+/* ======================================================
+   DELETE TOUR IMAGE
+   - Xóa ảnh theo imageId
+   - Xóa Cloudinary + Database
+====================================================== */
 const deleteTourImage = async (req, res) => {
   try {
-    const image = await Image.findById(req.params.imageId);
+    const { imageId } = req.params;
 
+    const image = await Image.findById(imageId);
     if (!image) {
       return res.status(404).json({
         success: false,
@@ -187,26 +232,31 @@ const deleteTourImage = async (req, res) => {
     }
 
     await cloudinary.uploader.destroy(image.public_id);
-    await Image.findByIdAndDelete(image._id);
+    await Image.findByIdAndDelete(imageId);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Xóa ảnh thành công",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-/* ================= UPDATE STATUS ================= */
+/* ======================================================
+   UPDATE TOUR STATUS
+   - Chỉ update trạng thái tour
+====================================================== */
 const updateTourStatus = async (req, res) => {
   try {
+    const { slug } = req.params;
     const { status } = req.body;
 
-    if (!["active", "inactive", "full"].includes(status)) {
+    const validStatuses = ["active", "inactive", "full"];
+    if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message: "Trạng thái không hợp lệ",
@@ -214,25 +264,29 @@ const updateTourStatus = async (req, res) => {
     }
 
     const tour = await Tour.findOneAndUpdate(
-      { slug: req.params.slug },
+      { slug },
       { status },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!tour) {
       return res.status(404).json({
         success: false,
-        message: "Tour không tồn tại",
+        message: "Không tìm thấy tour",
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Cập nhật trạng thái thành công",
-      data: tour,
+      message: "Cập nhật trạng thái tour thành công",
+      data: {
+        name: tour.name,
+        slug: tour.slug,
+        status: tour.status,
+      },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
