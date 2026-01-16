@@ -30,9 +30,10 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index.routes");
 var userRouter = require("./routes/user.routes");
 var hotelRouter = require("./routes/hotel.routes");
-var flightRouter = require("./routes/flight.routes");
 var tourRouter = require("./routes/tour.routes");
-var entertainmentRouter = require("./routes/entertainment.routes");
+var itineraryRoutes = require("./routes/itinerary.routes");
+var serviceRoutes = require("./routes/service.routes");
+var placeRoutes = require("./routes/place.routes");
 
 var app = express();
 
@@ -49,9 +50,10 @@ app.use(cors());
 app.use("/", indexRouter);
 app.use("/api/users", userRouter);
 app.use("/api/hotels", hotelRouter);
-app.use("/api/flights", flightRouter);
 app.use("/api/tours", tourRouter);
-app.use("/api/entertainments", entertainmentRouter);
+app.use("/api/itineraries", itineraryRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/places", placeRoutes);
 
 app.use(function (req, res, next) {
   next(createError(404));

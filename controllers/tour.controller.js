@@ -9,28 +9,16 @@ const cloudinary = require("../utils/cloudinary");
 ====================================================== */
 const createTour = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      price,
-      status,
-      start_date,
-      end_date,
-      max_people,
-    } = req.body;
+    const { name, status, hotel_id, dates } = req.body;
 
-    /* ===== Create tour ===== */
     const newTour = await Tour.create({
       name,
-      description,
-      price,
       status,
-      start_date,
-      end_date,
-      max_people,
+      hotel_id,
+      dates,
     });
 
-    /* ===== Upload images (nếu có) ===== */
+    /* ===== Upload images ===== */
     if (req.files?.length) {
       const uploads = await Promise.all(
         req.files.map((file) =>
@@ -73,8 +61,7 @@ const getAllTours = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    /* ===== Attach images ===== */
-    const tourIds = tours.map((tour) => tour._id);
+    const tourIds = tours.map((t) => t._id);
 
     const images = await Image.find({
       entity_id: { $in: tourIds },
@@ -82,9 +69,7 @@ const getAllTours = async (req, res) => {
 
     const imageMap = {};
     images.forEach((img) => {
-      if (!imageMap[img.entity_id]) {
-        imageMap[img.entity_id] = [];
-      }
+      if (!imageMap[img.entity_id]) imageMap[img.entity_id] = [];
       imageMap[img.entity_id].push(img);
     });
 
@@ -163,16 +148,7 @@ const updateTour = async (req, res) => {
       });
     }
 
-    /* ===== Update fields ===== */
-    const fields = [
-      "name",
-      "description",
-      "price",
-      "status",
-      "start_date",
-      "end_date",
-      "max_people",
-    ];
+    const fields = ["name", "status", "hotel_id", "dates"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {

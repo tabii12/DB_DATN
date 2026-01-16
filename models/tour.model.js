@@ -10,44 +10,25 @@ const tourSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    status: {
+      type: String,
+      enum: ["active", "inactive", "full"],
+      default: "active",
+    },
     slug: {
       type: String,
       slug: "name",
       unique: true,
     },
-
-    description: {
-      type: String,
-      trim: true,
-    },
-
-    start_date: {
-      type: Date,
+    hotel_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hotel", // Tên model của bảng khách sạn
       required: true,
     },
-
-    end_date: {
-      type: Date,
-      required: true,
-    },
-
     price: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
-    },
-
-    max_people: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-
-    status: {
-      type: String,
-      enum: ["active", "inactive", "full"],
-      default: "active",
     },
   },
   {

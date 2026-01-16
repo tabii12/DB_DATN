@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
   {
+    trip_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip", // Giả định tên model là Trip
+      required: true,
+      index: true,
+    },
+
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -9,22 +16,10 @@ const bookingSchema = new mongoose.Schema(
       index: true,
     },
 
-    service_type: {
-      type: String,
-      enum: ["hotel", "flight", "tour", "entertainment"],
-      required: true,
-      index: true,
-    },
-
-    service_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      index: true,
-    },
-
     booking_date: {
       type: Date,
       default: Date.now,
+      required: true,
     },
 
     total_price: {
@@ -33,21 +28,27 @@ const bookingSchema = new mongoose.Schema(
       min: 0,
     },
 
+    payment_method: {
+      type: String,
+      required: true,
+      // Bạn có thể thêm enum nếu có các phương thức cố định như ['credit_card', 'cash', 'vnpay']
+    },
+
+    total_members: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
     status: {
       type: String,
-      enum: ["pending", "paid", "cancelled", "completed"],
+      enum: ["pending", "paid", "cancelled", "completed"], // Các trạng thái phổ biến
       default: "pending",
       index: true,
     },
-
-    voucher_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Voucher",
-      default: null,
-    },
   },
   {
-    timestamps: true,
+    timestamps: true, // Tự động tạo createdAt và updatedAt
     versionKey: false,
   }
 );
