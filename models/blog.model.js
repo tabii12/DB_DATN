@@ -1,4 +1,7 @@
 const mongoose = require("mongoose");
+const slug = require("mongoose-slug-updater");
+
+mongoose.plugin(slug);
 
 const blogSchema = new mongoose.Schema(
   {

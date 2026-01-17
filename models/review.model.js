@@ -9,17 +9,11 @@ const reviewSchema = new mongoose.Schema(
       index: true,
     },
 
-    service_type: {
-      type: String,
-      enum: ["hotel", "flight", "tour", "entertainment"],
+    tour_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tour",
       required: true,
       index: true,
-    },
-
-    service_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      index: true, // query review theo service rất nhiều
     },
 
     rating: {
@@ -32,13 +26,6 @@ const reviewSchema = new mongoose.Schema(
     comment: {
       type: String,
       trim: true,
-    },
-
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-      index: true,
     },
   },
   {
