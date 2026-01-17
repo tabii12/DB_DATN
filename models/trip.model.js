@@ -37,7 +37,6 @@ const tripSchema = new mongoose.Schema(
   }
 );
 
-// Middleware để xử lý logic trước khi lưu (Ví dụ: kiểm tra ngày kết thúc phải sau ngày bắt đầu)
 tripSchema.pre("save", function (next) {
   if (this.end_date < this.start_date) {
     return next(new Error("Ngày kết thúc không thể trước ngày bắt đầu."));

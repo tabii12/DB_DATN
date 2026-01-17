@@ -34,6 +34,7 @@ var tourRouter = require("./routes/tour.routes");
 var itineraryRoutes = require("./routes/itinerary.routes");
 var serviceRoutes = require("./routes/service.routes");
 var placeRoutes = require("./routes/place.routes");
+var tripRoutes = require("./routes/trip.routes");
 
 var app = express();
 
@@ -54,6 +55,7 @@ app.use("/api/tours", tourRouter);
 app.use("/api/itineraries", itineraryRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/places", placeRoutes);
+app.use("/api/trips", tripRoutes);
 
 app.use(function (req, res, next) {
   next(createError(404));
