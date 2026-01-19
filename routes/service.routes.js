@@ -11,7 +11,7 @@ const serviceController = require("../controllers/service.controller");
 router.get("/", serviceController.getAllServices);
 
 // CREATE service
-router.post("/", serviceController.createService);
+router.post("/create", serviceController.createService);
 
 // UPDATE service by slug
 router.put("/:slug", serviceController.updateServiceBySlug);

@@ -8,7 +8,7 @@ const placeController = require("../controllers/place.controller");
 ====================================================== */
 
 // Create place
-router.post("/", placeController.createPlace);
+router.post("/create", placeController.createPlace);
 
 // Get all places
 router.get("/", placeController.getAllPlaces);

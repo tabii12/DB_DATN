@@ -16,7 +16,7 @@ router.get("/tour/:tourId", itineraryController.getItinerariesByTour);
  * @route   POST /api/itineraries
  * @desc    Tạo itinerary mới
  */
-router.post("/", itineraryController.createItinerary);
+router.post("/create", itineraryController.createItinerary);
 
 /**
  * @route   PATCH /api/itineraries/:slug

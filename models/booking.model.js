@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
+const paymentSchema = require("./payment.schema");
 
 const bookingSchema = new mongoose.Schema(
   {
     trip_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Trip", // Giả định tên model là Trip
+      ref: "Trip",
       required: true,
       index: true,
     },
@@ -19,19 +20,12 @@ const bookingSchema = new mongoose.Schema(
     booking_date: {
       type: Date,
       default: Date.now,
-      required: true,
     },
 
     total_price: {
       type: Number,
       required: true,
       min: 0,
-    },
-
-    payment_method: {
-      type: String,
-      required: true,
-      // Bạn có thể thêm enum nếu có các phương thức cố định như ['credit_card', 'cash', 'vnpay']
     },
 
     total_members: {
@@ -42,19 +36,22 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "paid", "cancelled", "completed"], // Các trạng thái phổ biến
+      enum: ["pending", "paid", "cancelled"],
       default: "pending",
       index: true,
     },
+
+    payment: {
+      type: paymentSchema,
+      required: true,
+    },
   },
   {
-    timestamps: true, // Tự động tạo createdAt và updatedAt
+    timestamps: true,
     versionKey: false,
   }
 );
 
-const Booking =
+module.exports =
   mongoose.models.Booking ||
   mongoose.model("Booking", bookingSchema, "bookings");
-
-module.exports = Booking;
