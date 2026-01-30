@@ -9,20 +9,26 @@ const cloudinary = require("../utils/cloudinary");
 ====================================================== */
 const createHotel = async (req, res) => {
   try {
-    const { name, address, city, description, price_per_night, status } =
-      req.body;
+    const {
+      name,
+      address,
+      city,
+      description,
+      price_per_night,
+      rating,
+      status,
+    } = req.body;
 
-    /* ===== Tạo khách sạn ===== */
     const newHotel = await Hotel.create({
       name,
       address,
       city,
       description,
       price_per_night,
+      rating, // 👈 thêm
       status,
     });
 
-    /* ===== Upload images (nếu có) ===== */
     if (req.files?.length) {
       const uploads = await Promise.all(
         req.files.map((file) =>
@@ -149,8 +155,15 @@ const getHotelBySlug = async (req, res) => {
 const updateHotel = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { name, address, city, description, price_per_night, status } =
-      req.body;
+    const {
+      name,
+      address,
+      city,
+      description,
+      price_per_night,
+      rating, // 👈 thêm
+      status,
+    } = req.body;
 
     const hotel = await Hotel.findOne({ slug });
     if (!hotel) {
@@ -160,17 +173,17 @@ const updateHotel = async (req, res) => {
       });
     }
 
-    /* ===== Update data ===== */
     hotel.name = name ?? hotel.name;
     hotel.address = address ?? hotel.address;
     hotel.city = city ?? hotel.city;
     hotel.description = description ?? hotel.description;
-    hotel.price_per_night = price_per_night ?? hotel.price_per_night;
+    hotel.price_per_night =
+      price_per_night ?? hotel.price_per_night;
+    hotel.rating = rating ?? hotel.rating; // 👈 thêm
     hotel.status = status ?? hotel.status;
 
     await hotel.save();
 
-    /* ===== Upload images mới ===== */
     if (req.files?.length) {
       const uploads = await Promise.all(
         req.files.map((file) =>

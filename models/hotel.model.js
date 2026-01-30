@@ -35,6 +35,12 @@ const hotelSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: 3,
+    },
     status: {
       type: String,
       enum: ["active", "inactive", "hidden"],
@@ -44,7 +50,7 @@ const hotelSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
 const Hotel =
