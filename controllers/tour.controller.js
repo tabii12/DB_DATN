@@ -4,19 +4,29 @@ const cloudinary = require("../utils/cloudinary");
 
 /* ======================================================
    CREATE TOUR
-   - Tạo tour mới
-   - Upload ảnh (nếu có)
 ====================================================== */
 const createTour = async (req, res) => {
   try {
-    const { name, status, hotel_id, category_id, price } = req.body;
+    const {
+      name,
+      status,
+      hotel_id,
+      category_id,
+      base_price,
+      description,
+      duration_days,
+      duration_nights,
+    } = req.body;
 
     const newTour = await Tour.create({
       name,
       status,
       hotel_id,
       category_id,
-      price,
+      base_price,
+      description,
+      duration_days,
+      duration_nights,
     });
 
     /* ===== Upload images ===== */
@@ -25,8 +35,8 @@ const createTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          }),
-        ),
+          })
+        )
       );
 
       const images = uploads.map((img) => ({
@@ -52,15 +62,13 @@ const createTour = async (req, res) => {
 };
 
 /* ======================================================
-   GET ALL TOURS
-   - Chỉ lấy tour đang active
-   - Gắn images cho từng tour
+   GET ALL TOURS (ACTIVE)
 ====================================================== */
 const getAllTours = async (req, res) => {
   try {
     const tours = await Tour.find({ status: "active" })
       .populate("category_id", "name slug")
-      .populate("hotel_id", "name") // nếu cần
+      .populate("hotel_id", "name")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -96,8 +104,6 @@ const getAllTours = async (req, res) => {
 
 /* ======================================================
    GET TOUR BY SLUG
-   - Tìm tour theo slug
-   - Chỉ lấy tour đang active
 ====================================================== */
 const getTourBySlug = async (req, res) => {
   try {
@@ -139,8 +145,6 @@ const getTourBySlug = async (req, res) => {
 
 /* ======================================================
    UPDATE TOUR BY SLUG
-   - Update thông tin tour
-   - Upload thêm ảnh (nếu có)
 ====================================================== */
 const updateTour = async (req, res) => {
   try {
@@ -154,7 +158,16 @@ const updateTour = async (req, res) => {
       });
     }
 
-    const fields = ["name", "status", "hotel_id", "category_id", "price"];
+    const fields = [
+      "name",
+      "status",
+      "hotel_id",
+      "category_id",
+      "base_price",
+      "description",
+      "duration_days",
+      "duration_nights",
+    ];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -170,8 +183,8 @@ const updateTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          }),
-        ),
+          })
+        )
       );
 
       const images = uploads.map((img) => ({
@@ -198,8 +211,6 @@ const updateTour = async (req, res) => {
 
 /* ======================================================
    DELETE TOUR IMAGE
-   - Xóa ảnh theo imageId
-   - Xóa Cloudinary + Database
 ====================================================== */
 const deleteTourImage = async (req, res) => {
   try {
@@ -230,14 +241,13 @@ const deleteTourImage = async (req, res) => {
 
 /* ======================================================
    UPDATE TOUR STATUS
-   - Chỉ update trạng thái tour
 ====================================================== */
 const updateTourStatus = async (req, res) => {
   try {
     const { slug } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ["active", "inactive", "full"];
+    const validStatuses = ["active", "inactive"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -248,7 +258,7 @@ const updateTourStatus = async (req, res) => {
     const tour = await Tour.findOneAndUpdate(
       { slug },
       { status },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     );
 
     if (!tour) {

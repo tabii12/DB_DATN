@@ -30,17 +30,52 @@ const tripSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+
+    booked_people: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "draft", // mới tạo, chưa public
+        "open", // đang nhận khách
+        "full", // đủ chỗ
+        "closed", // đóng đăng ký
+        "cancelled", // hủy chuyến
+        "completed", // đã kết thúc
+      ],
+      default: "draft",
+      index: true,
+    },
   },
   {
-    timestamps: true, 
+    timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
+/* ==========================
+   VALIDATION LOGIC
+========================== */
 tripSchema.pre("save", function (next) {
+  // end_date phải sau start_date
   if (this.end_date < this.start_date) {
     return next(new Error("Ngày kết thúc không thể trước ngày bắt đầu."));
   }
+
+  // booked_people không vượt max_people
+  if (this.booked_people > this.max_people) {
+    return next(new Error("Số người đặt không thể vượt quá số chỗ tối đa."));
+  }
+
+  // auto full khi đủ chỗ
+  if (this.booked_people === this.max_people) {
+    this.status = "full";
+  }
+
   next();
 });
 

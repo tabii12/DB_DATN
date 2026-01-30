@@ -1,15 +1,26 @@
 const Trip = require("../models/trip.model");
 const Tour = require("../models/tour.model");
 
+/* ======================================================
+   CREATE TRIP
+====================================================== */
 const createTrip = async (req, res) => {
   try {
     const { tour_id, start_date, end_date, price, max_people } = req.body;
 
-    // Validate cơ bản
     if (!tour_id || !start_date || !end_date || !price || !max_people) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc",
+      });
+    }
+
+    // Check tour tồn tại & đang active
+    const tour = await Tour.findOne({ _id: tour_id, status: "active" });
+    if (!tour) {
+      return res.status(404).json({
+        success: false,
+        message: "Tour không tồn tại hoặc đang bị ẩn",
       });
     }
 
@@ -19,6 +30,7 @@ const createTrip = async (req, res) => {
       end_date,
       price,
       max_people,
+      status: "open",
     });
 
     return res.status(201).json({
@@ -34,11 +46,15 @@ const createTrip = async (req, res) => {
   }
 };
 
+/* ======================================================
+   GET ALL TRIPS (ADMIN)
+====================================================== */
 const getAllTrips = async (req, res) => {
   try {
     const trips = await Trip.find()
       .populate("tour_id", "name slug")
-      .sort({ start_date: 1 });
+      .sort({ start_date: 1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
@@ -52,21 +68,27 @@ const getAllTrips = async (req, res) => {
   }
 };
 
+/* ======================================================
+   GET TRIPS BY TOUR SLUG (FRONTEND)
+====================================================== */
 const getTripsByTourSlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const tour = await Tour.findOne({ slug });
-
+    const tour = await Tour.findOne({ slug, status: "active" });
     if (!tour) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy tour",
       });
     }
-    const trips = await Trip.find({ tour_id: tour._id })
-      .populate("tour_id", "name slug")
-      .sort({ start_date: 1 });
+
+    const trips = await Trip.find({
+      tour_id: tour._id,
+      status: { $in: ["open", "full"] },
+    })
+      .sort({ start_date: 1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
@@ -80,38 +102,35 @@ const getTripsByTourSlug = async (req, res) => {
   }
 };
 
+/* ======================================================
+   UPDATE TRIP BY ID (ADMIN)
+====================================================== */
 const updateTripById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Lấy trip hiện tại
-    const currentTrip = await Trip.findById(id);
-    if (!currentTrip) {
+    const trip = await Trip.findById(id);
+    if (!trip) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy trip",
       });
     }
 
-    const startDate = req.body.start_date || currentTrip.start_date;
-    const endDate = req.body.end_date || currentTrip.end_date;
+    const fields = ["start_date", "end_date", "price", "max_people", "status"];
 
-    if (new Date(endDate) < new Date(startDate)) {
-      return res.status(400).json({
-        success: false,
-        message: "Ngày kết thúc không thể trước ngày bắt đầu",
-      });
-    }
-
-    const updatedTrip = await Trip.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
+    fields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        trip[field] = req.body[field];
+      }
     });
+
+    await trip.save();
 
     return res.status(200).json({
       success: true,
       message: "Cập nhật trip thành công",
-      data: updatedTrip,
+      data: trip,
     });
   } catch (error) {
     return res.status(500).json({
@@ -121,12 +140,14 @@ const updateTripById = async (req, res) => {
   }
 };
 
+/* ======================================================
+   DELETE TRIP
+====================================================== */
 const deleteTripById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const deletedTrip = await Trip.findByIdAndDelete(id);
-
     if (!deletedTrip) {
       return res.status(404).json({
         success: false,
