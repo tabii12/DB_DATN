@@ -7,26 +7,20 @@ const cloudinary = require("../utils/cloudinary");
 ====================================================== */
 const createTour = async (req, res) => {
   try {
-    const {
-      name,
-      status,
-      hotel_id,
-      category_id,
-      base_price,
-      description,
-      duration_days,
-      duration_nights,
-    } = req.body;
+    const { name, hotel_id, category_id, description } = req.body;
+
+    if (!name || !hotel_id || !category_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu dữ liệu bắt buộc",
+      });
+    }
 
     const newTour = await Tour.create({
       name,
-      status,
       hotel_id,
       category_id,
-      base_price,
       description,
-      duration_days,
-      duration_nights,
     });
 
     /* ===== Upload images ===== */
@@ -35,8 +29,8 @@ const createTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          })
-        )
+          }),
+        ),
       );
 
       const images = uploads.map((img) => ({
@@ -144,7 +138,7 @@ const getTourBySlug = async (req, res) => {
 };
 
 /* ======================================================
-   UPDATE TOUR BY SLUG
+   UPDATE TOUR BY SLUG (ADMIN)
 ====================================================== */
 const updateTour = async (req, res) => {
   try {
@@ -158,16 +152,7 @@ const updateTour = async (req, res) => {
       });
     }
 
-    const fields = [
-      "name",
-      "status",
-      "hotel_id",
-      "category_id",
-      "base_price",
-      "description",
-      "duration_days",
-      "duration_nights",
-    ];
+    const fields = ["name", "status", "hotel_id", "category_id", "description"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -183,8 +168,8 @@ const updateTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          })
-        )
+          }),
+        ),
       );
 
       const images = uploads.map((img) => ({
@@ -258,7 +243,7 @@ const updateTourStatus = async (req, res) => {
     const tour = await Tour.findOneAndUpdate(
       { slug },
       { status },
-      { new: true, runValidators: true }
+      { new: true },
     );
 
     if (!tour) {

@@ -30,7 +30,7 @@ const createTrip = async (req, res) => {
       end_date,
       price,
       max_people,
-      status: "open",
+      // status để default = "open"
     });
 
     return res.status(201).json({
@@ -117,13 +117,33 @@ const updateTripById = async (req, res) => {
       });
     }
 
+    const allowedStatus = ["open", "closed", "full"];
     const fields = ["start_date", "end_date", "price", "max_people", "status"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
+        // Không cho full → open
+        if (
+          field === "status" &&
+          trip.status === "full" &&
+          req.body.status === "open"
+        ) {
+          return;
+        }
+
+        // Validate enum status
+        if (field === "status" && !allowedStatus.includes(req.body.status)) {
+          return;
+        }
+
         trip[field] = req.body[field];
       }
     });
+
+    // Nếu trip đã kết thúc → auto closed
+    if (new Date(trip.end_date) < new Date()) {
+      trip.status = "closed";
+    }
 
     await trip.save();
 

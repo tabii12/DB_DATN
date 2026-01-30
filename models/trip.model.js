@@ -39,15 +39,8 @@ const tripSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "draft", // mới tạo, chưa public
-        "open", // đang nhận khách
-        "full", // đủ chỗ
-        "closed", // đóng đăng ký
-        "cancelled", // hủy chuyến
-        "completed", // đã kết thúc
-      ],
-      default: "draft",
+      enum: ["open", "closed", "full"],
+      default: "open",
       index: true,
     },
   },

@@ -43,22 +43,6 @@ const tourSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
-    base_price: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
-    duration_days: {
-      type: Number,
-      min: 1,
-    },
-
-    duration_nights: {
-      type: Number,
-      min: 0,
-    },
   },
   {
     timestamps: true,
