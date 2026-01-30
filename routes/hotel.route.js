@@ -1,14 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const upload = require("../middlewares/multer");
 const hotelController = require("../controllers/hotel.controller");
 
 /* ================= CREATE ================= */
 /**
  * Tạo khách sạn mới
- * - Upload tối đa 5 ảnh
  */
-router.post("/create", upload.array("images", 5), hotelController.createHotel);
+router.post("/create", hotelController.createHotel);
 
 /* ================= GET ================= */
 /**
@@ -24,19 +22,8 @@ router.get("/detail/:slug", hotelController.getHotelBySlug);
 /* ================= UPDATE ================= */
 /**
  * Cập nhật thông tin khách sạn
- * - Có thể upload thêm ảnh
  */
-router.put(
-  "/update/:slug",
-  upload.array("images", 5),
-  hotelController.updateHotel
-);
-
-/* ================= IMAGE ================= */
-/**
- * Xóa 1 ảnh của khách sạn theo imageId
- */
-router.delete("/image/:imageId", hotelController.deleteHotelImage);
+router.put("/update/:slug", hotelController.updateHotel);
 
 /* ================= STATUS ================= */
 /**

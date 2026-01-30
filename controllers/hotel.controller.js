@@ -1,11 +1,8 @@
 const Hotel = require("../models/hotel.model");
-const Image = require("../models/image.model");
-const cloudinary = require("../utils/cloudinary");
 
 /* ======================================================
    CREATE HOTEL
    - Tạo khách sạn mới
-   - Upload ảnh (nếu có)
 ====================================================== */
 const createHotel = async (req, res) => {
   try {
@@ -25,27 +22,9 @@ const createHotel = async (req, res) => {
       city,
       description,
       price_per_night,
-      rating, // 👈 thêm
+      rating,
       status,
     });
-
-    if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/hotels",
-          })
-        )
-      );
-
-      const images = uploads.map((img) => ({
-        entity_id: newHotel._id,
-        image_url: img.secure_url,
-        public_id: img.public_id,
-      }));
-
-      await Image.insertMany(images);
-    }
 
     return res.status(201).json({
       success: true,
@@ -64,38 +43,17 @@ const createHotel = async (req, res) => {
 /* ======================================================
    GET ALL HOTELS
    - Lấy danh sách khách sạn đang active
-   - Gắn images cho từng khách sạn
 ====================================================== */
 const getAllHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find({ status: "active" })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    /* ===== Gắn images ===== */
-    const hotelIds = hotels.map((hotel) => hotel._id);
-
-    const images = await Image.find({
-      entity_id: { $in: hotelIds },
-    }).lean();
-
-    const imageMap = {};
-    images.forEach((img) => {
-      if (!imageMap[img.entity_id]) {
-        imageMap[img.entity_id] = [];
-      }
-      imageMap[img.entity_id].push(img);
+    const hotels = await Hotel.find({ status: "active" }).sort({
+      createdAt: -1,
     });
-
-    const result = hotels.map((hotel) => ({
-      ...hotel,
-      images: imageMap[hotel._id] || [],
-    }));
 
     return res.status(200).json({
       success: true,
-      count: result.length,
-      data: result,
+      count: hotels.length,
+      data: hotels,
     });
   } catch (error) {
     console.error("🔥 GetAllHotels Error:", error);
@@ -108,8 +66,6 @@ const getAllHotels = async (req, res) => {
 
 /* ======================================================
    GET HOTEL BY SLUG
-   - Tìm khách sạn theo slug
-   - Gắn images
 ====================================================== */
 const getHotelBySlug = async (req, res) => {
   try {
@@ -118,7 +74,7 @@ const getHotelBySlug = async (req, res) => {
     const hotel = await Hotel.findOne({
       slug,
       status: "active",
-    }).lean();
+    });
 
     if (!hotel) {
       return res.status(404).json({
@@ -127,16 +83,9 @@ const getHotelBySlug = async (req, res) => {
       });
     }
 
-    const images = await Image.find({
-      entity_id: hotel._id,
-    }).lean();
-
     return res.status(200).json({
       success: true,
-      data: {
-        ...hotel,
-        images,
-      },
+      data: hotel,
     });
   } catch (error) {
     console.error("🔥 GetHotelBySlug Error:", error);
@@ -149,8 +98,6 @@ const getHotelBySlug = async (req, res) => {
 
 /* ======================================================
    UPDATE HOTEL BY SLUG
-   - Update thông tin khách sạn
-   - Upload thêm ảnh (nếu có)
 ====================================================== */
 const updateHotel = async (req, res) => {
   try {
@@ -161,7 +108,7 @@ const updateHotel = async (req, res) => {
       city,
       description,
       price_per_night,
-      rating, // 👈 thêm
+      rating,
       status,
     } = req.body;
 
@@ -177,30 +124,11 @@ const updateHotel = async (req, res) => {
     hotel.address = address ?? hotel.address;
     hotel.city = city ?? hotel.city;
     hotel.description = description ?? hotel.description;
-    hotel.price_per_night =
-      price_per_night ?? hotel.price_per_night;
-    hotel.rating = rating ?? hotel.rating; // 👈 thêm
+    hotel.price_per_night = price_per_night ?? hotel.price_per_night;
+    hotel.rating = rating ?? hotel.rating;
     hotel.status = status ?? hotel.status;
 
     await hotel.save();
-
-    if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/hotels",
-          })
-        )
-      );
-
-      const images = uploads.map((img) => ({
-        entity_id: hotel._id,
-        image_url: img.secure_url,
-        public_id: img.public_id,
-      }));
-
-      await Image.insertMany(images);
-    }
 
     return res.status(200).json({
       success: true,
@@ -217,40 +145,7 @@ const updateHotel = async (req, res) => {
 };
 
 /* ======================================================
-   DELETE HOTEL IMAGE
-   - Xóa ảnh theo imageId
-   - Xóa Cloudinary + Database
-====================================================== */
-const deleteHotelImage = async (req, res) => {
-  try {
-    const { imageId } = req.params;
-
-    const image = await Image.findById(imageId);
-    if (!image) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy ảnh",
-      });
-    }
-
-    await cloudinary.uploader.destroy(image.public_id);
-    await Image.findByIdAndDelete(imageId);
-
-    return res.status(200).json({
-      success: true,
-      message: "Xóa ảnh thành công",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/* ======================================================
    UPDATE HOTEL STATUS
-   - Chỉ update trạng thái khách sạn
 ====================================================== */
 const updateHotelStatus = async (req, res) => {
   try {
@@ -268,7 +163,7 @@ const updateHotelStatus = async (req, res) => {
     const hotel = await Hotel.findOneAndUpdate(
       { slug },
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!hotel) {
@@ -288,6 +183,7 @@ const updateHotelStatus = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("🔥 UpdateHotelStatus Error:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -300,6 +196,5 @@ module.exports = {
   getAllHotels,
   getHotelBySlug,
   updateHotel,
-  deleteHotelImage,
   updateHotelStatus,
 };
