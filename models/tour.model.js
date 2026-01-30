@@ -30,6 +30,11 @@ const tourSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    category_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category", // Tên model của bảng danh mục
+      required: true,
+    }
   },
   {
     timestamps: true,

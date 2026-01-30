@@ -27,18 +27,20 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 
-var indexRouter = require("./routes/index.routes");
-var userRouter = require("./routes/user.routes");
-var hotelRouter = require("./routes/hotel.routes");
-var tourRouter = require("./routes/tour.routes");
-var itineraryRoutes = require("./routes/itinerary.routes");
-var serviceRoutes = require("./routes/service.routes");
-var placeRoutes = require("./routes/place.routes");
-var tripRoutes = require("./routes/trip.routes");
-var descriptionRoutes = require("./routes/description.routes");
-var blogRoutes = require("./routes/blog.routes");
-var reviewRoutes = require("./routes/review.routes");
-var tourMemberRoutes = require("./routes/tourMember.routes");
+var indexRouter = require("./routes/index.route");
+var userRouter = require("./routes/user.route");
+var hotelRouter = require("./routes/hotel.route");
+var tourRouter = require("./routes/tour.route");
+var itineraryRoutes = require("./routes/itinerary.route");
+var serviceRoutes = require("./routes/service.route");
+var placeRoutes = require("./routes/place.route");
+var tripRoutes = require("./routes/trip.route");
+var descriptionRoutes = require("./routes/description.route");
+var blogRoutes = require("./routes/blog.route");
+var reviewRoutes = require("./routes/review.route");
+var bookingRoutes = require("./routes/booking.route");
+var tourMemberRoutes = require("./routes/tourMember.route");
+var categoryRoutes = require("./routes/category.route");
 
 var app = express();
 
@@ -63,7 +65,9 @@ app.use("/api/trips", tripRoutes);
 app.use("/api/descriptions", descriptionRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/bookings", bookingRoutes);
 app.use("/api/tour-members", tourMemberRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.use(function (req, res, next) {
   next(createError(404));

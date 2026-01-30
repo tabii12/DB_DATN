@@ -9,13 +9,14 @@ const cloudinary = require("../utils/cloudinary");
 ====================================================== */
 const createTour = async (req, res) => {
   try {
-    const { name, status, hotel_id, dates } = req.body;
+    const { name, status, hotel_id, category_id, price } = req.body;
 
     const newTour = await Tour.create({
       name,
       status,
       hotel_id,
-      dates,
+      category_id,
+      price,
     });
 
     /* ===== Upload images ===== */
@@ -24,8 +25,8 @@ const createTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          })
-        )
+          }),
+        ),
       );
 
       const images = uploads.map((img) => ({
@@ -58,6 +59,8 @@ const createTour = async (req, res) => {
 const getAllTours = async (req, res) => {
   try {
     const tours = await Tour.find({ status: "active" })
+      .populate("category_id", "name slug")
+      .populate("hotel_id", "name") // nếu cần
       .sort({ createdAt: -1 })
       .lean();
 
@@ -103,7 +106,10 @@ const getTourBySlug = async (req, res) => {
     const tour = await Tour.findOne({
       slug,
       status: "active",
-    }).lean();
+    })
+      .populate("category_id", "name slug")
+      .populate("hotel_id", "name")
+      .lean();
 
     if (!tour) {
       return res.status(404).json({
@@ -148,7 +154,7 @@ const updateTour = async (req, res) => {
       });
     }
 
-    const fields = ["name", "status", "hotel_id", "dates"];
+    const fields = ["name", "status", "hotel_id", "category_id", "price"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -164,8 +170,8 @@ const updateTour = async (req, res) => {
         req.files.map((file) =>
           cloudinary.uploader.upload(file.path, {
             folder: "pick_your_way/tours",
-          })
-        )
+          }),
+        ),
       );
 
       const images = uploads.map((img) => ({
@@ -242,7 +248,7 @@ const updateTourStatus = async (req, res) => {
     const tour = await Tour.findOneAndUpdate(
       { slug },
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!tour) {

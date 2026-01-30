@@ -23,7 +23,7 @@ const descriptionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Description", descriptionSchema);
