@@ -1,22 +1,38 @@
 const Place = require("../models/place.model");
-const Service = require("../models/service.model");
+const PlaceImage = require("../models/placeImage.model");
 
 /* ======================================================
    CREATE PLACE
 ====================================================== */
 const createPlace = async (req, res) => {
   try {
-    const { title, content } = req.body;
+    const { title, content, images = [] } = req.body;
 
+    // 1. Tạo place
     const place = await Place.create({
       title,
       content,
     });
 
+    // 2. Tạo images nếu có
+    let placeImages = [];
+    if (images.length > 0) {
+      placeImages = await PlaceImage.insertMany(
+        images.map((img) => ({
+          place_id: place._id,
+          image_url: img.image_url,
+          public_id: img.public_id,
+        })),
+      );
+    }
+
     return res.status(201).json({
       success: true,
       message: "Tạo place thành công",
-      data: place,
+      data: {
+        ...place.toObject(),
+        images: placeImages,
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -27,33 +43,13 @@ const createPlace = async (req, res) => {
 };
 
 /* ======================================================
-   GET ALL PLACES
+   UPDATE PLACE
 ====================================================== */
-const getAllPlaces = async (req, res) => {
+const updatePlace = async (req, res) => {
   try {
-    const places = await Place.find().sort({ createdAt: -1 });
+    const { id } = req.params;
 
-    return res.status(200).json({
-      success: true,
-      total: places.length,
-      data: places,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-/* ======================================================
-   UPDATE PLACE BY SLUG
-====================================================== */
-const updatePlaceBySlug = async (req, res) => {
-  try {
-    const { slug } = req.params;
-
-    const place = await Place.findOne({ slug });
+    const place = await Place.findById(id);
     if (!place) {
       return res.status(404).json({
         success: false,
@@ -61,9 +57,7 @@ const updatePlaceBySlug = async (req, res) => {
       });
     }
 
-    const fields = ["title", "content"];
-
-    fields.forEach((field) => {
+    ["title", "content"].forEach((field) => {
       if (req.body[field] !== undefined) {
         place[field] = req.body[field];
       }
@@ -71,10 +65,15 @@ const updatePlaceBySlug = async (req, res) => {
 
     await place.save();
 
+    const images = await PlaceImage.find({ place_id: place._id });
+
     return res.status(200).json({
       success: true,
       message: "Cập nhật place thành công",
-      data: place,
+      data: {
+        ...place.toObject(),
+        images,
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -85,14 +84,13 @@ const updatePlaceBySlug = async (req, res) => {
 };
 
 /* ======================================================
-   DELETE PLACE BY SLUG
-   - Không cho xoá nếu còn service đang dùng place
+   DELETE PLACE
 ====================================================== */
-const deletePlaceBySlug = async (req, res) => {
+const deletePlace = async (req, res) => {
   try {
-    const { slug } = req.params;
+    const { id } = req.params;
 
-    const place = await Place.findOne({ slug });
+    const place = await Place.findById(id);
     if (!place) {
       return res.status(404).json({
         success: false,
@@ -100,18 +98,10 @@ const deletePlaceBySlug = async (req, res) => {
       });
     }
 
-    // Check service đang dùng place
-    const serviceCount = await Service.countDocuments({
-      place_id: place._id,
-    });
+    // ❗ Không check service ở đây
+    // Service không gắn trực tiếp với place
 
-    if (serviceCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Không thể xoá place vì vẫn còn service đang sử dụng",
-      });
-    }
-
+    await PlaceImage.deleteMany({ place_id: place._id });
     await Place.findByIdAndDelete(place._id);
 
     return res.status(200).json({
@@ -128,7 +118,6 @@ const deletePlaceBySlug = async (req, res) => {
 
 module.exports = {
   createPlace,
-  getAllPlaces,
-  updatePlaceBySlug,
-  deletePlaceBySlug,
+  updatePlace,
+  deletePlace,
 };

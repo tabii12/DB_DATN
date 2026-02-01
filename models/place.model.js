@@ -1,31 +1,25 @@
 const mongoose = require("mongoose");
-const slug = require("mongoose-slug-updater");
-
-mongoose.plugin(slug);
 
 const placeSchema = new mongoose.Schema(
   {
-    title: {
+    name: {
       type: String,
       required: true,
       trim: true,
     },
 
-    slug: {
-      type: String,
-      slug: "title",
-      unique: true,
-      index: true,
-    },
-
-    content: {
+    description: {
       type: String,
       trim: true,
     },
   },
   {
     timestamps: true,
-  }
+    versionKey: false,
+  },
 );
 
-module.exports = mongoose.model("Place", placeSchema);
+const Place =
+  mongoose.models.Place || mongoose.model("Place", placeSchema, "places");
+
+module.exports = Place;

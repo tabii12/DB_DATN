@@ -25,11 +25,17 @@ const tourMemberSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Trip",
       required: true,
+      index: true, // hay query theo trip → nên index
     },
   },
   {
     timestamps: true,
+    versionKey: false, 
   },
 );
 
-module.exports = mongoose.model("TourMember", tourMemberSchema);
+const TourMember =
+  mongoose.models.TourMember ||
+  mongoose.model("TourMember", tourMemberSchema, "tour_members");
+
+module.exports = TourMember;

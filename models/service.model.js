@@ -1,7 +1,4 @@
 const mongoose = require("mongoose");
-const slug = require("mongoose-slug-updater");
-
-mongoose.plugin(slug);
 
 const serviceSchema = new mongoose.Schema(
   {
@@ -9,13 +6,6 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-    },
-
-    slug: {
-      type: String,
-      slug: "name",
-      unique: true,
-      index: true,
     },
 
     description: {
@@ -28,17 +18,15 @@ const serviceSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-
-    place_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Place",
-      required: true,
-      index: true,
-    },
   },
   {
     timestamps: true,
-  }
+    versionKey: false,
+  },
 );
 
-module.exports = mongoose.model("Service", serviceSchema);
+const Service =
+  mongoose.models.Service ||
+  mongoose.model("Service", serviceSchema, "services");
+
+module.exports = Service;

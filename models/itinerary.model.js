@@ -1,44 +1,38 @@
 const mongoose = require("mongoose");
 const slug = require("mongoose-slug-updater");
 
-mongoose.plugin(slug);
-
 const itinerarySchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    slug: {
-      type: String,
-      slug: "name",
-      unique: true,
-    },
-
-    date: {
-      type: Date,
-      required: true,
-    },
-
-    service_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Service",
-      required: true,
-      index: true,
-    },
-
     tour_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
       index: true,
     },
+
+    day_number: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    meal_note: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-module.exports = mongoose.model("Itinerary", itinerarySchema);
+const Itinerary =
+  mongoose.models.Itinerary || mongoose.model("Itinerary", itinerarySchema);
+
+module.exports = Itinerary;

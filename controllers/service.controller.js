@@ -1,24 +1,16 @@
 const Service = require("../models/service.model");
-const Itinerary = require("../models/itinerary.model");
 
+/* ======================================================
+   CREATE SERVICE
+====================================================== */
 const createService = async (req, res) => {
   try {
-    const { name, description, price, place_id } = req.body;
+    const { name, description, price } = req.body;
 
-    // 1. Validate cơ bản
-    if (!name || !price || !place_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Thiếu dữ liệu bắt buộc (name, price, place_id)",
-      });
-    }
-
-    // 2. Tạo service
     const service = await Service.create({
       name,
       description,
       price,
-      place_id,
     });
 
     return res.status(201).json({
@@ -27,14 +19,6 @@ const createService = async (req, res) => {
       data: service,
     });
   } catch (error) {
-    // Trường hợp trùng slug
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Service đã tồn tại (trùng slug)",
-      });
-    }
-
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -42,15 +26,16 @@ const createService = async (req, res) => {
   }
 };
 
+/* ======================================================
+   GET ALL SERVICES
+====================================================== */
 const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find()
-      .populate("place_id", "title")
-      .sort({ createdAt: -1 });
+    const services = await Service.find().sort({ createdAt: -1 }).lean();
 
     return res.status(200).json({
       success: true,
-      total: services.length,
+      count: services.length,
       data: services,
     });
   } catch (error) {
@@ -61,11 +46,14 @@ const getAllServices = async (req, res) => {
   }
 };
 
-const updateServiceBySlug = async (req, res) => {
+/* ======================================================
+   GET SERVICE BY ID
+====================================================== */
+const getServiceById = async (req, res) => {
   try {
-    const { slug } = req.params;
+    const { id } = req.params;
 
-    const service = await Service.findOne({ slug });
+    const service = await Service.findById(id);
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -73,7 +61,34 @@ const updateServiceBySlug = async (req, res) => {
       });
     }
 
-    const fields = ["name", "description", "price", "place_id"];
+    return res.status(200).json({
+      success: true,
+      data: service,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ======================================================
+   UPDATE SERVICE
+====================================================== */
+const updateServiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const service = await Service.findById(id);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy service",
+      });
+    }
+
+    const fields = ["name", "description", "price"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -96,11 +111,14 @@ const updateServiceBySlug = async (req, res) => {
   }
 };
 
-const deleteServiceBySlug = async (req, res) => {
+/* ======================================================
+   DELETE SERVICE
+====================================================== */
+const deleteServiceById = async (req, res) => {
   try {
-    const { slug } = req.params;
+    const { id } = req.params;
 
-    const service = await Service.findOne({ slug });
+    const service = await Service.findByIdAndDelete(id);
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -108,23 +126,9 @@ const deleteServiceBySlug = async (req, res) => {
       });
     }
 
-    // Check service có đang nằm trong itinerary không
-    const usedInItinerary = await Itinerary.exists({
-      services: service._id,
-    });
-
-    if (usedInItinerary) {
-      return res.status(400).json({
-        success: false,
-        message: "Không thể xoá service vì đang được sử dụng trong itinerary",
-      });
-    }
-
-    await Service.findByIdAndDelete(service._id);
-
     return res.status(200).json({
       success: true,
-      message: "Xoá service thành công",
+      message: "Xóa service thành công",
     });
   } catch (error) {
     return res.status(500).json({
@@ -137,6 +141,7 @@ const deleteServiceBySlug = async (req, res) => {
 module.exports = {
   createService,
   getAllServices,
-  updateServiceBySlug,
-  deleteServiceBySlug,
+  getServiceById,
+  updateServiceById,
+  deleteServiceById,
 };

@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
 
-const imageSchema = new mongoose.Schema(
+const placeImageSchema = new mongoose.Schema(
   {
-    entity_id: {
+    place_id: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "Place",
       required: true,
-      index: true, // query theo entity rất nhiều → nên index
+      index: true,
     },
 
     image_url: {
@@ -16,17 +17,18 @@ const imageSchema = new mongoose.Schema(
 
     public_id: {
       type: String,
-      required: true, // đã dùng Cloudinary thì NÊN required
+      required: true,
       trim: true,
     },
   },
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
-const Image =
-  mongoose.models.Image || mongoose.model("Image", imageSchema, "images");
+const PlaceImage =
+  mongoose.models.PlaceImage ||
+  mongoose.model("PlaceImage", placeImageSchema, "place_images");
 
-module.exports = Image;
+module.exports = PlaceImage;

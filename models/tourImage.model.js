@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const itinerarySchema = new mongoose.Schema(
+const tourImageSchema = new mongoose.Schema(
   {
     tour_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -9,31 +9,26 @@ const itinerarySchema = new mongoose.Schema(
       index: true,
     },
 
-    day_number: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-
-    title: {
+    image_url: {
       type: String,
       required: true,
       trim: true,
     },
 
-    meal_note: {
+    public_id: {
       type: String,
+      required: true,
       trim: true,
     },
   },
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
-const Itinerary =
-  mongoose.models.Itinerary ||
-  mongoose.model("Itinerary", itinerarySchema, "itineraries");
+const TourImage =
+  mongoose.models.TourImage ||
+  mongoose.model("TourImage", tourImageSchema, "tour_images");
 
-module.exports = Itinerary;
+module.exports = TourImage;

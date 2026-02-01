@@ -1,23 +1,25 @@
-const Itinerary = require("../models/itinerary.model");
+const ItineraryDetail = require("../models/itineraryDetail.model");
 
 /* ======================================================
-   CREATE ITINERARY (1 ngày trong tour)
+   CREATE ITINERARY DETAIL
 ====================================================== */
-const createItinerary = async (req, res) => {
+const createItineraryDetail = async (req, res) => {
   try {
-    const { tour_id, day_number, title, meal_note } = req.body;
+    const { itinerary_id, place_id, type, title, content, order } = req.body;
 
-    const itinerary = await Itinerary.create({
-      tour_id,
-      day_number,
+    const detail = await ItineraryDetail.create({
+      itinerary_id,
+      place_id,
+      type,
       title,
-      meal_note,
+      content,
+      order,
     });
 
     return res.status(201).json({
       success: true,
-      message: "Tạo itinerary thành công",
-      data: itinerary,
+      message: "Tạo itinerary detail thành công",
+      data: detail,
     });
   } catch (error) {
     return res.status(500).json({
@@ -28,22 +30,22 @@ const createItinerary = async (req, res) => {
 };
 
 /* ======================================================
-   GET ITINERARIES BY TOUR
+   GET DETAILS BY ITINERARY
 ====================================================== */
-const getItinerariesByTour = async (req, res) => {
+const getDetailsByItinerary = async (req, res) => {
   try {
-    const { tourId } = req.params;
+    const { itineraryId } = req.params;
 
-    const itineraries = await Itinerary.find({
-      tour_id: tourId,
+    const details = await ItineraryDetail.find({
+      itinerary_id: itineraryId,
     })
-      .sort({ day_number: 1 })
-      .lean();
+      .populate("place_id")
+      .sort({ order: 1 });
 
     return res.status(200).json({
       success: true,
-      count: itineraries.length,
-      data: itineraries,
+      total: details.length,
+      data: details,
     });
   } catch (error) {
     return res.status(500).json({
@@ -54,34 +56,34 @@ const getItinerariesByTour = async (req, res) => {
 };
 
 /* ======================================================
-   UPDATE ITINERARY BY ID
+   UPDATE DETAIL
 ====================================================== */
-const updateItineraryById = async (req, res) => {
+const updateItineraryDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const itinerary = await Itinerary.findById(id);
-    if (!itinerary) {
+    const detail = await ItineraryDetail.findById(id);
+    if (!detail) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy itinerary",
+        message: "Không tìm thấy itinerary detail",
       });
     }
 
-    const fields = ["day_number", "title", "meal_note", "tour_id"];
+    const fields = ["place_id", "type", "title", "content", "order"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        itinerary[field] = req.body[field];
+        detail[field] = req.body[field];
       }
     });
 
-    await itinerary.save();
+    await detail.save();
 
     return res.status(200).json({
       success: true,
-      message: "Cập nhật itinerary thành công",
-      data: itinerary,
+      message: "Cập nhật itinerary detail thành công",
+      data: detail,
     });
   } catch (error) {
     return res.status(500).json({
@@ -92,23 +94,23 @@ const updateItineraryById = async (req, res) => {
 };
 
 /* ======================================================
-   DELETE ITINERARY BY ID
+   DELETE DETAIL
 ====================================================== */
-const deleteItineraryById = async (req, res) => {
+const deleteItineraryDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const itinerary = await Itinerary.findByIdAndDelete(id);
-    if (!itinerary) {
+    const detail = await ItineraryDetail.findByIdAndDelete(id);
+    if (!detail) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy itinerary",
+        message: "Không tìm thấy itinerary detail",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Xóa itinerary thành công",
+      message: "Xoá itinerary detail thành công",
     });
   } catch (error) {
     return res.status(500).json({
@@ -119,8 +121,8 @@ const deleteItineraryById = async (req, res) => {
 };
 
 module.exports = {
-  createItinerary,
-  getItinerariesByTour,
-  updateItineraryById,
-  deleteItineraryById,
+  createItineraryDetail,
+  getDetailsByItinerary,
+  updateItineraryDetail,
+  deleteItineraryDetail,
 };

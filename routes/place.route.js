@@ -8,15 +8,12 @@ const placeController = require("../controllers/place.controller");
 ====================================================== */
 
 // Create place
-router.post("/create", placeController.createPlace);
+router.post("/", placeController.createPlace);
 
-// Get all places
-router.get("/", placeController.getAllPlaces);
+// Update place by id
+router.put("/:id", placeController.updatePlace);
 
-// Update place by slug
-router.put("/:slug", placeController.updatePlaceBySlug);
-
-// Delete place by slug
-router.delete("/:slug", placeController.deletePlaceBySlug);
+// Delete place by id
+router.delete("/:id", placeController.deletePlace);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const Tour = require("../models/tour.model");
 const Description = require("../models/description.model");
-const Image = require("../models/image.model");
+const TourImage = require("../models/tourImage.model");
 const cloudinary = require("../utils/cloudinary");
 
 /* ======================================================
@@ -34,12 +34,12 @@ const createTour = async (req, res) => {
       );
 
       const images = uploads.map((img) => ({
-        entity_id: newTour._id,
+        tour_id: newTour._id,
         image_url: img.secure_url,
         public_id: img.public_id,
       }));
 
-      await Image.insertMany(images);
+      await TourImage.insertMany(images);
     }
 
     return res.status(201).json({
@@ -69,14 +69,14 @@ const getAllTours = async (req, res) => {
     const tourIds = tours.map((t) => t._id);
 
     /* ===== Images ===== */
-    const images = await Image.find({
-      entity_id: { $in: tourIds },
+    const images = await TourImage.find({
+      tour_id: { $in: tourIds },
     }).lean();
 
     const imageMap = {};
     images.forEach((img) => {
-      if (!imageMap[img.entity_id]) imageMap[img.entity_id] = [];
-      imageMap[img.entity_id].push(img);
+      if (!imageMap[img.tour_id]) imageMap[img.tour_id] = [];
+      imageMap[img.tour_id].push(img);
     });
 
     /* ===== Descriptions ===== */
@@ -135,8 +135,8 @@ const getTourBySlug = async (req, res) => {
     }
 
     /* ===== Images ===== */
-    const images = await Image.find({
-      entity_id: tour._id,
+    const images = await TourImage.find({
+      tour_id: tour._id,
     }).lean();
 
     /* ===== Descriptions ===== */
@@ -198,12 +198,12 @@ const updateTour = async (req, res) => {
       );
 
       const images = uploads.map((img) => ({
-        entity_id: tour._id,
+        tour_id: tour._id,
         image_url: img.secure_url,
         public_id: img.public_id,
       }));
 
-      await Image.insertMany(images);
+      await TourImage.insertMany(images);
     }
 
     return res.status(200).json({
@@ -226,7 +226,7 @@ const deleteTourImage = async (req, res) => {
   try {
     const { imageId } = req.params;
 
-    const image = await Image.findById(imageId);
+    const image = await TourImage.findById(imageId);
     if (!image) {
       return res.status(404).json({
         success: false,
@@ -235,7 +235,7 @@ const deleteTourImage = async (req, res) => {
     }
 
     await cloudinary.uploader.destroy(image.public_id);
-    await Image.findByIdAndDelete(imageId);
+    await TourImage.findByIdAndDelete(imageId);
 
     return res.status(200).json({
       success: true,
