@@ -8,7 +8,7 @@ const isAdmin = require("../middlewares/isAdmin.middleware");
 // ================= USER =================
 
 // Tạo booking
-router.post("/", authMiddleware, bookingController.createBooking);
+router.post("/create", authMiddleware, bookingController.createBooking);
 
 // Lấy danh sách booking của chính mình
 router.get("/my-bookings", authMiddleware, bookingController.getMyBookings);

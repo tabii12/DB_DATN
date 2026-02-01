@@ -8,7 +8,7 @@ const itineraryDetailController = require("../controllers/itineraryDetail.contro
 ====================================================== */
 
 // Create itinerary detail
-router.post("/", itineraryDetailController.createItineraryDetail);
+router.post("/create", itineraryDetailController.createItineraryDetail);
 
 // Get details by itinerary
 router.get(

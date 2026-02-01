@@ -8,7 +8,7 @@ const itineraryServiceController = require("../controllers/itineraryService.cont
 ====================================================== */
 
 // Thêm service vào itinerary
-router.post("/", itineraryServiceController.createItineraryService);
+router.post("/create", itineraryServiceController.createItineraryService);
 
 // Lấy danh sách service theo itinerary
 router.get(
