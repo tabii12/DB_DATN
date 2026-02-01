@@ -25,11 +25,6 @@ const tourSchema = new mongoose.Schema(
       index: true,
     },
 
-    description: {
-      type: String,
-      trim: true,
-    },
-
     hotel_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hotel",

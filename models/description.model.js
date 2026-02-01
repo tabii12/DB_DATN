@@ -6,6 +6,7 @@ const descriptionSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
     },
 
     content: {
@@ -23,7 +24,12 @@ const descriptionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    versionKey: false,
   },
 );
 
-module.exports = mongoose.model("Description", descriptionSchema);
+const Description =
+  mongoose.models.Description ||
+  mongoose.model("Description", descriptionSchema, "descriptions");
+
+module.exports = Description;

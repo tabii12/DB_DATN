@@ -1,4 +1,5 @@
 const Tour = require("../models/tour.model");
+const Description = require("../models/description.model");
 const Image = require("../models/image.model");
 const cloudinary = require("../utils/cloudinary");
 
@@ -7,7 +8,7 @@ const cloudinary = require("../utils/cloudinary");
 ====================================================== */
 const createTour = async (req, res) => {
   try {
-    const { name, hotel_id, category_id, description } = req.body;
+    const { name, hotel_id, category_id } = req.body;
 
     if (!name || !hotel_id || !category_id) {
       return res.status(400).json({
@@ -20,7 +21,6 @@ const createTour = async (req, res) => {
       name,
       hotel_id,
       category_id,
-      description,
     });
 
     /* ===== Upload images ===== */
@@ -61,13 +61,14 @@ const createTour = async (req, res) => {
 const getAllTours = async (req, res) => {
   try {
     const tours = await Tour.find({ status: "active" })
-      .populate("category_id", "name slug")
-      .populate("hotel_id", "name")
+      .populate("category_id")
+      .populate("hotel_id")
       .sort({ createdAt: -1 })
       .lean();
 
     const tourIds = tours.map((t) => t._id);
 
+    /* ===== Images ===== */
     const images = await Image.find({
       entity_id: { $in: tourIds },
     }).lean();
@@ -78,9 +79,24 @@ const getAllTours = async (req, res) => {
       imageMap[img.entity_id].push(img);
     });
 
+    /* ===== Descriptions ===== */
+    const descriptions = await Description.find({
+      tour_id: { $in: tourIds },
+    }).lean();
+
+    const descriptionMap = {};
+    descriptions.forEach((desc) => {
+      if (!descriptionMap[desc.tour_id]) descriptionMap[desc.tour_id] = [];
+      descriptionMap[desc.tour_id].push({
+        title: desc.title,
+        content: desc.content,
+      });
+    });
+
     const result = tours.map((tour) => ({
       ...tour,
       images: imageMap[tour._id] || [],
+      descriptions: descriptionMap[tour._id] || [],
     }));
 
     return res.status(200).json({
@@ -107,8 +123,8 @@ const getTourBySlug = async (req, res) => {
       slug,
       status: "active",
     })
-      .populate("category_id", "name slug")
-      .populate("hotel_id", "name")
+      .populate("category_id")
+      .populate("hotel_id")
       .lean();
 
     if (!tour) {
@@ -118,15 +134,24 @@ const getTourBySlug = async (req, res) => {
       });
     }
 
+    /* ===== Images ===== */
     const images = await Image.find({
       entity_id: tour._id,
     }).lean();
+
+    /* ===== Descriptions ===== */
+    const descriptions = await Description.find({
+      tour_id: tour._id,
+    })
+      .select("title content -_id")
+      .lean();
 
     return res.status(200).json({
       success: true,
       data: {
         ...tour,
         images,
+        descriptions,
       },
     });
   } catch (error) {
@@ -152,7 +177,7 @@ const updateTour = async (req, res) => {
       });
     }
 
-    const fields = ["name", "status", "hotel_id", "category_id", "description"];
+    const fields = ["name", "status", "hotel_id", "category_id"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
