@@ -1,13 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
-/* ================= AUTH PROTECT MIDDLEWARE ================= */
-/**
- * Middleware bảo vệ route
- * - Kiểm tra JWT token từ header Authorization
- * - Giải mã token
- * - Gắn thông tin user vào req.user
- */
 const protect = async (req, res, next) => {
   let token;
 

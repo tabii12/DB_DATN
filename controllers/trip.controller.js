@@ -4,9 +4,6 @@ const ItineraryService = require("../models/itineraryService.model");
 const Service = require("../models/service.model");
 const Hotel = require("../models/hotel.model");
 
-/* ======================================================
-   CREATE TRIP
-====================================================== */
 const createTrip = async (req, res) => {
   try {
     const { tour_id, start_date, end_date, max_people } = req.body;
@@ -78,9 +75,6 @@ const createTrip = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ALL TRIPS (ADMIN)
-====================================================== */
 const getAllTrips = async (req, res) => {
   try {
     const trips = await Trip.find()
@@ -100,9 +94,6 @@ const getAllTrips = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET TRIPS BY TOUR SLUG (FRONTEND)
-====================================================== */
 const getTripsByTourSlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -134,9 +125,6 @@ const getTripsByTourSlug = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE TRIP BY ID (ADMIN)
-====================================================== */
 const updateTripById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -192,9 +180,6 @@ const updateTripById = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE TRIP
-====================================================== */
 const deleteTripById = async (req, res) => {
   try {
     const { id } = req.params;

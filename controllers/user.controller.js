@@ -3,11 +3,6 @@ const sendEmail = require("../utils/sendEmail");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-/* ======================================================
-   REGISTER
-   - Đăng ký tài khoản mới
-   - Gửi email xác thực (OTP)
-====================================================== */
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -70,11 +65,6 @@ const register = async (req, res) => {
   }
 };
 
-/* ======================================================
-   VERIFY EMAIL
-   - Xác thực tài khoản bằng mã OTP
-   - Hỗ trợ gọi từ link hoặc API
-====================================================== */
 const verifyEmail = async (req, res) => {
   try {
     /* ===== Nhận dữ liệu từ body hoặc params ===== */
@@ -143,11 +133,6 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-/* ======================================================
-   LOGIN
-   - Đăng nhập bằng email + password
-   - Chỉ cho phép user đã verify
-====================================================== */
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -211,11 +196,6 @@ const login = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ALL USERS (ADMIN)
-   - Lấy danh sách user
-   - Không trả password
-====================================================== */
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
@@ -233,10 +213,6 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE USER STATUS (ADMIN)
-   - active | inactive | blocked
-====================================================== */
 const updateUserStatus = async (req, res) => {
   try {
     const { id } = req.params;

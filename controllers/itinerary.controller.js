@@ -2,9 +2,6 @@ const Itinerary = require("../models/itinerary.model");
 const ItineraryDetail = require("../models/itineraryDetail.model");
 const PlaceImage = require("../models/placeImage.model");
 
-/* ======================================================
-   CREATE ITINERARY (1 ngày trong tour)
-====================================================== */
 const createItinerary = async (req, res) => {
   try {
     const { tour_id, day_number, title, meal_note } = req.body;
@@ -29,9 +26,6 @@ const createItinerary = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ITINERARIES BY TOUR
-====================================================== */
 const getItinerariesByTour = async (req, res) => {
   try {
     const { tourId } = req.params;
@@ -79,9 +73,6 @@ const getItinerariesByTour = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE ITINERARY BY ID
-====================================================== */
 const updateItineraryById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -117,9 +108,6 @@ const updateItineraryById = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE ITINERARY BY ID
-====================================================== */
 const deleteItineraryById = async (req, res) => {
   try {
     const { id } = req.params;

@@ -2,9 +2,6 @@ const Place = require("../models/place.model");
 const PlaceImage = require("../models/placeImage.model");
 const cloudinary = require("../utils/cloudinary");
 
-/* ======================================================
-   CREATE PLACE
-====================================================== */
 const createPlace = async (req, res) => {
   try {
     const { title, content } = req.body;
@@ -54,9 +51,6 @@ const createPlace = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE PLACE
-====================================================== */
 const updatePlace = async (req, res) => {
   try {
     const { id } = req.params;
@@ -128,9 +122,6 @@ const updatePlace = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE PLACE
-====================================================== */
 const deletePlace = async (req, res) => {
   try {
     const { id } = req.params;

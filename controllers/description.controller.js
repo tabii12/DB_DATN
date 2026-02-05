@@ -1,6 +1,5 @@
 const Description = require("../models/description.model");
 
-// CREATE DESCRIPTION
 const createDescription = async (req, res) => {
   try {
     const { title, content, tour_id } = req.body;
@@ -32,7 +31,6 @@ const createDescription = async (req, res) => {
   }
 };
 
-// GET ALL DESCRIPTION BY TOUR
 const getDescriptionsByTour = async (req, res) => {
   try {
     const { tour_id } = req.params;
@@ -52,7 +50,6 @@ const getDescriptionsByTour = async (req, res) => {
   }
 };
 
-// UPDATE DESCRIPTION BY ID
 const updateDescriptionById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,7 +83,6 @@ const updateDescriptionById = async (req, res) => {
   }
 };
 
-// DELETE DESCRIPTION BY ID
 const deleteDescriptionById = async (req, res) => {
   try {
     const { id } = req.params;

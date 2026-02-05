@@ -1,8 +1,5 @@
 const Category = require("../models/category.model");
 
-/* ======================================================
-   CREATE CATEGORY
-====================================================== */
 const createCategory = async (req, res) => {
   try {
     const { name, status } = req.body;
@@ -25,10 +22,6 @@ const createCategory = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ALL CATEGORIES
-   - Có thể lọc theo status (active)
-====================================================== */
 const getAllCategories = async (req, res) => {
   try {
     const filter = {};
@@ -53,9 +46,6 @@ const getAllCategories = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET CATEGORY BY SLUG
-====================================================== */
 const getCategoryBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -81,9 +71,6 @@ const getCategoryBySlug = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE CATEGORY BY SLUG
-====================================================== */
 const updateCategory = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -115,9 +102,6 @@ const updateCategory = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE CATEGORY STATUS
-====================================================== */
 const updateCategoryStatus = async (req, res) => {
   try {
     const { slug } = req.params;

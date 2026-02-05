@@ -1,8 +1,5 @@
 const ItineraryService = require("../models/itineraryService.model");
 
-/* ======================================================
-   CREATE – thêm service vào itinerary
-====================================================== */
 const createItineraryService = async (req, res) => {
   try {
     const { itinerary_id, service_id, quantity } = req.body;
@@ -26,9 +23,6 @@ const createItineraryService = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET – lấy service theo itinerary
-====================================================== */
 const getServicesByItinerary = async (req, res) => {
   try {
     const { itineraryId } = req.params;
@@ -64,9 +58,6 @@ const getServicesByItinerary = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE – cập nhật quantity
-====================================================== */
 const updateItineraryService = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,9 +90,6 @@ const updateItineraryService = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE – xóa service khỏi itinerary
-====================================================== */
 const deleteItineraryService = async (req, res) => {
   try {
     const { id } = req.params;

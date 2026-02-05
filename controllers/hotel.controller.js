@@ -1,9 +1,5 @@
 const Hotel = require("../models/hotel.model");
 
-/* ======================================================
-   CREATE HOTEL
-   - Tạo khách sạn mới
-====================================================== */
 const createHotel = async (req, res) => {
   try {
     const {
@@ -40,10 +36,7 @@ const createHotel = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ALL HOTELS
-   - Lấy danh sách khách sạn đang active
-====================================================== */
+
 const getAllHotels = async (req, res) => {
   try {
     const hotels = await Hotel.find({ status: "active" }).sort({
@@ -64,9 +57,6 @@ const getAllHotels = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET HOTEL BY SLUG
-====================================================== */
 const getHotelBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -96,9 +86,6 @@ const getHotelBySlug = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE HOTEL BY SLUG
-====================================================== */
 const updateHotel = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -144,9 +131,6 @@ const updateHotel = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE HOTEL STATUS
-====================================================== */
 const updateHotelStatus = async (req, res) => {
   try {
     const { slug } = req.params;

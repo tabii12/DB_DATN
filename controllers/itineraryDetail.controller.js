@@ -1,8 +1,5 @@
 const ItineraryDetail = require("../models/itineraryDetail.model");
 
-/* ======================================================
-   CREATE ITINERARY DETAIL
-====================================================== */
 const createItineraryDetail = async (req, res) => {
   try {
     const { itinerary_id, place_id, type, title, content, order } = req.body;
@@ -29,9 +26,6 @@ const createItineraryDetail = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET DETAILS BY ITINERARY
-====================================================== */
 const getDetailsByItinerary = async (req, res) => {
   try {
     const { itineraryId } = req.params;
@@ -55,9 +49,6 @@ const getDetailsByItinerary = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE DETAIL
-====================================================== */
 const updateItineraryDetail = async (req, res) => {
   try {
     const { id } = req.params;
@@ -93,9 +84,6 @@ const updateItineraryDetail = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE DETAIL
-====================================================== */
 const deleteItineraryDetail = async (req, res) => {
   try {
     const { id } = req.params;

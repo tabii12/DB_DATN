@@ -8,10 +8,6 @@ const ItineraryDetail = require("../models/itineraryDetail.model");
 const PlaceImage = require("../models/placeImage.model");
 const Trip = require("../models/trip.model");
 
-
-/* ======================================================
-   CREATE TOUR
-====================================================== */
 const createTour = async (req, res) => {
   try {
     const { name, hotel_id, category_id } = req.body;
@@ -61,9 +57,6 @@ const createTour = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET ALL TOURS (ACTIVE)
-====================================================== */
 const getAllTours = async (req, res) => {
   try {
     const tours = await Tour.find({ status: "active" })
@@ -118,9 +111,6 @@ const getAllTours = async (req, res) => {
   }
 };
 
-/* ======================================================
-   GET TOUR BY SLUG
-====================================================== */
 const getTourBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -231,9 +221,6 @@ const getTourBySlug = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE TOUR BY SLUG (ADMIN)
-====================================================== */
 const updateTour = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -288,9 +275,6 @@ const updateTour = async (req, res) => {
   }
 };
 
-/* ======================================================
-   DELETE TOUR IMAGE
-====================================================== */
 const deleteTourImage = async (req, res) => {
   try {
     const { imageId } = req.params;
@@ -318,9 +302,6 @@ const deleteTourImage = async (req, res) => {
   }
 };
 
-/* ======================================================
-   UPDATE TOUR STATUS
-====================================================== */
 const updateTourStatus = async (req, res) => {
   try {
     const { slug } = req.params;
