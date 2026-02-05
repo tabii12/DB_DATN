@@ -2,13 +2,13 @@ const mongoose = require("mongoose");
 
 const placeSchema = new mongoose.Schema(
   {
-    name: {
+    title: {
       type: String,
       required: true,
       trim: true,
     },
 
-    description: {
+    content: {
       type: String,
       trim: true,
     },

@@ -1,7 +1,13 @@
 const Tour = require("../models/tour.model");
-const Description = require("../models/description.model");
 const TourImage = require("../models/tourImage.model");
-const cloudinary = require("../utils/cloudinary");
+const Description = require("../models/description.model");
+
+const Itinerary = require("../models/itinerary.model");
+const ItineraryDetail = require("../models/itineraryDetail.model");
+
+const PlaceImage = require("../models/placeImage.model");
+const Trip = require("../models/trip.model");
+
 
 /* ======================================================
    CREATE TOUR
@@ -119,6 +125,7 @@ const getTourBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
+    /* ===== Tour ===== */
     const tour = await Tour.findOne({
       slug,
       status: "active",
@@ -134,7 +141,7 @@ const getTourBySlug = async (req, res) => {
       });
     }
 
-    /* ===== Images ===== */
+    /* ===== Tour Images ===== */
     const images = await TourImage.find({
       tour_id: tour._id,
     }).lean();
@@ -146,12 +153,74 @@ const getTourBySlug = async (req, res) => {
       .select("title content -_id")
       .lean();
 
+    /* ===== Itineraries ===== */
+    const itineraries = await Itinerary.find({
+      tour_id: tour._id,
+    })
+      .sort({ day_number: 1 })
+      .lean();
+
+    const itineraryIds = itineraries.map((i) => i._id);
+
+    /* ===== Itinerary Details ===== */
+    const details = await ItineraryDetail.find({
+      itinerary_id: { $in: itineraryIds },
+    })
+      .populate("place_id")
+      .sort({ order: 1 })
+      .lean();
+
+    /* ===== Place Images ===== */
+    const placeIds = details.map((d) => d.place_id?._id).filter(Boolean);
+
+    const placeImages = await PlaceImage.find({
+      place_id: { $in: placeIds },
+    }).lean();
+
+    const placeImageMap = {};
+    placeImages.forEach((img) => {
+      if (!placeImageMap[img.place_id]) {
+        placeImageMap[img.place_id] = [];
+      }
+      placeImageMap[img.place_id].push(img);
+    });
+
+    /* ===== Gắn images vào place ===== */
+    details.forEach((d) => {
+      if (d.place_id) {
+        d.place_id.images = placeImageMap[d.place_id._id] || [];
+      }
+    });
+
+    /* ===== Group details theo itinerary ===== */
+    const detailMap = {};
+    details.forEach((d) => {
+      if (!detailMap[d.itinerary_id]) {
+        detailMap[d.itinerary_id] = [];
+      }
+      detailMap[d.itinerary_id].push(d);
+    });
+
+    itineraries.forEach((i) => {
+      i.details = detailMap[i._id] || [];
+    });
+
+    /* ===== Trips ===== */
+    const trips = await Trip.find({
+      tour_id: tour._id,
+      status: { $in: ["open", "full"] },
+    })
+      .sort({ start_date: 1 })
+      .lean();
+
     return res.status(200).json({
       success: true,
       data: {
         ...tour,
         images,
         descriptions,
+        itineraries,
+        trips,
       },
     });
   } catch (error) {

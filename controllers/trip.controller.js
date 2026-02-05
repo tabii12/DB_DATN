@@ -1,22 +1,27 @@
 const Trip = require("../models/trip.model");
 const Tour = require("../models/tour.model");
+const ItineraryService = require("../models/itineraryService.model");
+const Service = require("../models/service.model");
+const Hotel = require("../models/hotel.model");
 
 /* ======================================================
    CREATE TRIP
 ====================================================== */
 const createTrip = async (req, res) => {
   try {
-    const { tour_id, start_date, end_date, price, max_people } = req.body;
+    const { tour_id, start_date, end_date, max_people } = req.body;
 
-    if (!tour_id || !start_date || !end_date || !price || !max_people) {
+    if (!tour_id || !start_date || !end_date || !max_people) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc",
       });
     }
 
-    // Check tour tồn tại & đang active
-    const tour = await Tour.findOne({ _id: tour_id, status: "active" });
+    const tour = await Tour.findOne({
+      _id: tour_id,
+      status: "active",
+    }).populate("hotel_id");
     if (!tour) {
       return res.status(404).json({
         success: false,
@@ -24,19 +29,46 @@ const createTrip = async (req, res) => {
       });
     }
 
+    /* ===== 1. TÍNH GIÁ SERVICE ===== */
+    const itineraryServices =
+      await ItineraryService.find().populate("service_id");
+
+    let serviceTotal = 0;
+    itineraryServices.forEach((item) => {
+      serviceTotal += item.service_id.price * item.quantity;
+    });
+
+    /* ===== 2. TÍNH GIÁ KHÁCH SẠN ===== */
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+    const hotelPricePerNight = tour.hotel_id?.price_per_night || 0;
+    const hotelTotal = hotelPricePerNight * nights;
+
+    /* ===== 3. PHỤ THU 50% ===== */
+    const price = Math.round((serviceTotal + hotelTotal) * 1.5);
+
+    /* ===== 4. CREATE TRIP ===== */
     const trip = await Trip.create({
       tour_id,
       start_date,
       end_date,
       price,
       max_people,
-      // status để default = "open"
     });
 
     return res.status(201).json({
       success: true,
       message: "Tạo trip thành công",
-      data: trip,
+      data: {
+        trip,
+        breakdown: {
+          serviceTotal,
+          hotelTotal,
+          surcharge: "50%",
+        },
+      },
     });
   } catch (error) {
     return res.status(500).json({

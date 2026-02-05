@@ -1,4 +1,6 @@
 const Itinerary = require("../models/itinerary.model");
+const ItineraryDetail = require("../models/itineraryDetail.model");
+const PlaceImage = require("../models/placeImage.model");
 
 /* ======================================================
    CREATE ITINERARY (1 ngày trong tour)
@@ -34,11 +36,35 @@ const getItinerariesByTour = async (req, res) => {
   try {
     const { tourId } = req.params;
 
+    // 1. Lấy itineraries theo tour
     const itineraries = await Itinerary.find({
       tour_id: tourId,
     })
       .sort({ day_number: 1 })
       .lean();
+
+    // 2. Gắn itinerary_details cho từng itinerary
+    for (const itinerary of itineraries) {
+      const details = await ItineraryDetail.find({
+        itinerary_id: itinerary._id,
+      })
+        .populate("place_id")
+        .sort({ order: 1 })
+        .lean();
+
+      // 3. Nếu detail có place → lấy thêm images
+      for (const detail of details) {
+        if (detail.place_id) {
+          const images = await PlaceImage.find({
+            place_id: detail.place_id._id,
+          }).lean();
+
+          detail.place_id.images = images;
+        }
+      }
+
+      itinerary.details = details;
+    }
 
     return res.status(200).json({
       success: true,
