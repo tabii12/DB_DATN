@@ -26,16 +26,23 @@ const createTrip = async (req, res) => {
       });
     }
 
-    /* ===== 1. TÍNH GIÁ SERVICE ===== */
-    const itineraryServices =
-      await ItineraryService.find().populate("service_id");
+    /* ===== 1. LẤY ITINERARY CỦA TOUR ===== */
+    const itineraries = await Itinerary.find({ tour_id });
+    const itineraryIds = itineraries.map((i) => i._id);
+
+    /* ===== 2. TÍNH GIÁ SERVICE ===== */
+    const itineraryServices = await ItineraryService.find({
+      itinerary_id: { $in: itineraryIds },
+    }).populate("service_id");
 
     let serviceTotal = 0;
     itineraryServices.forEach((item) => {
-      serviceTotal += item.service_id.price * item.quantity;
+      if (item.service_id) {
+        serviceTotal += item.service_id.price * item.quantity;
+      }
     });
 
-    /* ===== 2. TÍNH GIÁ KHÁCH SẠN ===== */
+    /* ===== 3. TÍNH GIÁ KHÁCH SẠN ===== */
     const start = new Date(start_date);
     const end = new Date(end_date);
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
@@ -43,10 +50,11 @@ const createTrip = async (req, res) => {
     const hotelPricePerNight = tour.hotel_id?.price_per_night || 0;
     const hotelTotal = hotelPricePerNight * nights;
 
-    /* ===== 3. PHỤ THU 50% ===== */
-    const price = Math.round((serviceTotal + hotelTotal) * 1.5);
+    /* ===== 4. TỔNG GIÁ ===== */
+    const basePrice = serviceTotal + hotelTotal;
+    const price = Math.round(basePrice * 1.5);
 
-    /* ===== 4. CREATE TRIP ===== */
+    /* ===== 5. CREATE TRIP ===== */
     const trip = await Trip.create({
       tour_id,
       start_date,
