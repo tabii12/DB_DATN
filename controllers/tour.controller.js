@@ -8,6 +8,8 @@ const ItineraryDetail = require("../models/itineraryDetail.model");
 const PlaceImage = require("../models/placeImage.model");
 const Trip = require("../models/trip.model");
 
+const cloudinary = require("../utils/cloudinary");
+
 const createTour = async (req, res) => {
   try {
     const { name, hotel_id, category_id } = req.body;
