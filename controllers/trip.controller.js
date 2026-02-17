@@ -1,8 +1,7 @@
 const Trip = require("../models/trip.model");
 const Tour = require("../models/tour.model");
+const Itinerary = require("../models/itinerary.model");
 const ItineraryService = require("../models/itineraryService.model");
-const Service = require("../models/service.model");
-const Hotel = require("../models/hotel.model");
 
 const createTrip = async (req, res) => {
   try {
@@ -48,11 +47,18 @@ const createTrip = async (req, res) => {
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
     const hotelPricePerNight = tour.hotel_id?.price_per_night || 0;
-    const hotelTotal = hotelPricePerNight * nights;
+    const capacity = tour.hotel_id.capacity || 2;
+    const rooms = Math.ceil(max_people / capacity);
+
+    const hotelTotal = hotelPricePerNight * nights * rooms;
 
     /* ===== 4. TỔNG GIÁ ===== */
-    const basePrice = serviceTotal + hotelTotal;
-    const price = Math.round(basePrice * 1.5);
+    const totalGroupCost = serviceTotal + hotelTotal;
+    const costPerPerson = totalGroupCost / max_people;
+
+    const MARKUP = 1.5;
+    const rawPrice = costPerPerson * MARKUP;
+    const price = Math.ceil(rawPrice / 10000) * 10000 - 1000;
 
     /* ===== 5. CREATE TRIP ===== */
     const trip = await Trip.create({

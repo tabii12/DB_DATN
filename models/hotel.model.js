@@ -46,6 +46,10 @@ const hotelSchema = new mongoose.Schema(
       enum: ["active", "inactive", "hidden"],
       default: "active",
     },
+    capacity: {
+    type: Number,
+    default: 2, // mặc định 2 người / phòng
+  },
   },
   {
     timestamps: true,
