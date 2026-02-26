@@ -2,6 +2,9 @@ const { User } = require("../models/user.model");
 const sendEmail = require("../utils/sendEmail");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const register = async (req, res) => {
   try {
@@ -93,7 +96,7 @@ const verifyEmail = async (req, res) => {
         .status(400)
         .send("<h1>Tài khoản đã được xác thực trước đó.</h1>");
     }
-    
+
     /* ===== Kiểm tra hết hạn ===== */
     if (user.emailVerifyExpire < Date.now()) {
       return res.status(400).send("<h1>Mã xác thực đã hết hạn.</h1>");
@@ -174,7 +177,7 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "your_secret_key",
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     return res.status(200).json({
@@ -192,6 +195,70 @@ const login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+const googleAuth = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu Google token",
+      });
+    }
+
+    // ===== Verify token với Google =====
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Không lấy được email từ Google",
+      });
+    }
+
+    // ===== Check user tồn tại =====
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // ===== Nếu chưa có thì tạo mới =====
+      user = await User.create({
+        name,
+        email,
+        password: null,
+        isVerified: true, // Google auto verified
+      });
+    }
+
+    // ===== Tạo JWT =====
+    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Đăng nhập Google thành công",
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("🔥 Google Auth Error:", error);
+    return res.status(401).json({
+      success: false,
+      message: "Xác thực Google thất bại",
     });
   }
 };
@@ -229,7 +296,7 @@ const updateUserStatus = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       id,
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select("-password");
 
     if (!user) {
@@ -256,6 +323,7 @@ module.exports = {
   register,
   verifyEmail,
   login,
+  googleAuth,
   getAllUsers,
   updateUserStatus,
 };
