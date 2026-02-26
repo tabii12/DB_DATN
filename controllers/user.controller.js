@@ -33,7 +33,7 @@ const register = async (req, res) => {
     });
 
     /* ===== Gửi email xác thực ===== */
-    const verifyUrl = `http://localhost:3000/api/users/verify-email/${email}/${verifyCode}`;
+    const verifyUrl = `https://db-datn.onrender.com/api/users/verify-email/${email}/${verifyCode}`;
 
     await sendEmail({
       to: email,
@@ -93,15 +93,15 @@ const verifyEmail = async (req, res) => {
         .status(400)
         .send("<h1>Tài khoản đã được xác thực trước đó.</h1>");
     }
+    
+    /* ===== Kiểm tra hết hạn ===== */
+    if (user.emailVerifyExpire < Date.now()) {
+      return res.status(400).send("<h1>Mã xác thực đã hết hạn.</h1>");
+    }
 
     /* ===== Kiểm tra mã OTP ===== */
     if (user.emailVerifyCode !== code) {
       return res.status(400).send("<h1>Mã xác thực không chính xác.</h1>");
-    }
-
-    /* ===== Kiểm tra hết hạn ===== */
-    if (user.emailVerifyExpire < Date.now()) {
-      return res.status(400).send("<h1>Mã xác thực đã hết hạn.</h1>");
     }
 
     /* ===== Cập nhật trạng thái xác thực ===== */
