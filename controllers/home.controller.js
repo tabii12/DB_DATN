@@ -26,6 +26,11 @@ const replaceImage = async (oldPublicId, files, folder) => {
   return uploaded[0];
 };
 
+const createHome = async (req, res) => {
+  const home = await Home.create(req.body);
+  res.json(home);
+};
+
 const getHome = async (req, res) => {
   try {
     let home = await Home.findOne();
@@ -396,6 +401,7 @@ const deleteDestination = async (req, res) => {
 };
 
 module.exports = {
+  createHome,
   getHome,
   addBanner,
   updateBanner,

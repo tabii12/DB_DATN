@@ -6,6 +6,8 @@ const upload = require("../middlewares/multer");
 // ===== HOME =====
 router.get("/", homeController.getHome);
 
+router.post("/", homeController.createHome);
+
 // ===== BANNERS =====
 router.post("/banners", upload.array("images", 10), homeController.addBanner);
 
