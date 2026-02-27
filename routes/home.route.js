@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const homeController = require("../controllers/home.controller");
-const upload = require("../middlewares/upload");
+const upload = require("../middlewares/multer");
 
 // ===== HOME =====
 router.get("/", homeController.getHome);
