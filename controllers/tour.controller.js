@@ -9,6 +9,7 @@ const PlaceImage = require("../models/placeImage.model");
 const Trip = require("../models/trip.model");
 
 const cloudinary = require("../utils/cloudinary");
+const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
 const createTour = async (req, res) => {
   try {
@@ -27,20 +28,15 @@ const createTour = async (req, res) => {
       category_id,
     });
 
-    /* ===== Upload images ===== */
-    if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/tours",
-          }),
-        ),
-      );
+    const uploadedImages = await uploadMultipleImages(
+      req.files,
+      "pick_your_way/tours",
+    );
 
-      const images = uploads.map((img) => ({
+    if (uploadedImages.length) {
+      const images = uploadedImages.map((img) => ({
         tour_id: newTour._id,
-        image_url: img.secure_url,
-        public_id: img.public_id,
+        ...img,
       }));
 
       await TourImage.insertMany(images);
@@ -235,6 +231,7 @@ const updateTour = async (req, res) => {
       });
     }
 
+    /* ===== Update fields ===== */
     const fields = ["name", "status", "hotel_id", "category_id"];
 
     fields.forEach((field) => {
@@ -247,18 +244,14 @@ const updateTour = async (req, res) => {
 
     /* ===== Upload new images ===== */
     if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/tours",
-          }),
-        ),
+      const uploadedImages = await uploadMultipleImages(
+        req.files,
+        "pick_your_way/tours",
       );
 
-      const images = uploads.map((img) => ({
+      const images = uploadedImages.map((img) => ({
         tour_id: tour._id,
-        image_url: img.secure_url,
-        public_id: img.public_id,
+        ...img,
       }));
 
       await TourImage.insertMany(images);

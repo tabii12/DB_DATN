@@ -1,6 +1,7 @@
 const Place = require("../models/place.model");
 const PlaceImage = require("../models/placeImage.model");
 const cloudinary = require("../utils/cloudinary");
+const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
 const createPlace = async (req, res) => {
   try {
@@ -13,26 +14,22 @@ const createPlace = async (req, res) => {
       });
     }
 
-    // 1. Tạo place
+    // 1️⃣ Tạo place
     const place = await Place.create({
       title,
       content,
     });
 
-    /* ===== Upload images ===== */
-    if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/places",
-          }),
-        ),
-      );
+    // 2️⃣ Upload ảnh nếu có
+    const uploadedImages = await uploadMultipleImages(
+      req.files,
+      "pick_your_way/places",
+    );
 
-      const images = uploads.map((img) => ({
+    if (uploadedImages.length) {
+      const images = uploadedImages.map((img) => ({
         place_id: place._id,
-        image_url: img.secure_url,
-        public_id: img.public_id,
+        ...img,
       }));
 
       await PlaceImage.insertMany(images);
@@ -64,46 +61,54 @@ const updatePlace = async (req, res) => {
       });
     }
 
-    /* ===== Update text ===== */
+    /* ===== 1. Update text ===== */
     if (title !== undefined) place.title = title;
     if (content !== undefined) place.content = content;
+
     await place.save();
 
-    /* ===== Delete images ===== */
-    if (delete_image_ids) {
-      const ids = JSON.parse(delete_image_ids);
+    /* ===== 2. Delete images ===== */
+    if (delete_image_ids?.length) {
+      // đảm bảo là array (frontend nên gửi array luôn)
+      const ids = Array.isArray(delete_image_ids)
+        ? delete_image_ids
+        : JSON.parse(delete_image_ids);
 
       const imagesToDelete = await PlaceImage.find({
         _id: { $in: ids },
         place_id: place._id,
       });
 
-      for (const img of imagesToDelete) {
-        await cloudinary.uploader.destroy(img.public_id);
-      }
+      // xoá trên cloudinary song song
+      await Promise.all(
+        imagesToDelete.map((img) => cloudinary.uploader.destroy(img.public_id)),
+      );
 
-      await PlaceImage.deleteMany({ _id: { $in: ids } });
+      // xoá trong DB
+      await PlaceImage.deleteMany({
+        _id: { $in: ids },
+        place_id: place._id,
+      });
     }
 
-    /* ===== Add new images ===== */
+    /* ===== 3. Add new images ===== */
     if (req.files?.length) {
-      const uploads = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: "pick_your_way/places",
-          }),
-        ),
+      const uploadedImages = await uploadMultipleImages(
+        req.files,
+        "pick_your_way/places",
       );
 
-      await PlaceImage.insertMany(
-        uploads.map((img) => ({
-          place_id: place._id,
-          image_url: img.secure_url,
-          public_id: img.public_id,
-        })),
-      );
+      if (uploadedImages.length) {
+        await PlaceImage.insertMany(
+          uploadedImages.map((img) => ({
+            place_id: place._id,
+            ...img,
+          })),
+        );
+      }
     }
 
+    /* ===== 4. Return updated data ===== */
     const images = await PlaceImage.find({ place_id: place._id });
 
     return res.status(200).json({

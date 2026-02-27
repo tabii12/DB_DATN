@@ -23,6 +23,7 @@ var reviewRoutes = require("./routes/review.route");
 var bookingRoutes = require("./routes/booking.route");
 var tourMemberRoutes = require("./routes/tourMember.route");
 var categoryRoutes = require("./routes/category.route");
+var homeRouter = require("./routes/home.route");
 
 var app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/tour-members", tourMemberRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/home", homeRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
