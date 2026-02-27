@@ -1,4 +1,6 @@
 const Home = require("../models/home.model");
+const cloudinary = require("../utils/cloudinary");
+const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
 const getHomeDocument = async () => {
   let home = await Home.findOne();
