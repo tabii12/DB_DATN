@@ -36,7 +36,7 @@ const register = async (req, res) => {
     });
 
     /* ===== Gửi email xác thực ===== */
-    const verifyUrl = `https://db-datn.onrender.com/api/users/verify-email/${email}/${verifyCode}`;
+    const verifyUrl = `https://db-datn-six.vercel.app/api/users/verify-email/${email}/${verifyCode}`;
 
     await sendEmail({
       to: email,
@@ -48,7 +48,6 @@ const register = async (req, res) => {
           style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
           XÁC THỰC TÀI KHOẢN
         </a>
-        <p>Hoặc nhập mã thủ công: <b>${verifyCode}</b></p>
         <p>Link có hiệu lực trong 10 phút.</p>
       `,
     });
