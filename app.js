@@ -1,24 +1,4 @@
-const mongoose = require("mongoose");
 require("dotenv").config();
-
-const mongoURI = process.env.MONGO_URI;
-
-if (!mongoURI) {
-  console.error("❌ Lỗi: MONGO_URI chưa được thiết lập trong biến môi trường.");
-  process.exit(1);
-}
-
-mongoose
-  .connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ Kết nối MongoDB thành công");
-  })
-  .catch((err) => {
-    console.error("❌ Lỗi kết nối MongoDB:", err);
-  });
 
 var cors = require("cors");
 var createError = require("http-errors");
