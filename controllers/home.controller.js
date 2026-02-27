@@ -1,3 +1,5 @@
+const Home = require("../models/home.model");
+
 const getHomeDocument = async () => {
   let home = await Home.findOne();
   if (!home) {
