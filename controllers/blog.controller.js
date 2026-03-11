@@ -47,6 +47,8 @@ const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
 
+    const blogIds = blogs.map((t) => t._id);
+
     const images = await BlogImage.find({
       blog_id: { $in: blogIds },
     }).lean();
