@@ -16,4 +16,6 @@ router.get("/verify-email/:email/:code", userController.verifyEmail);
 
 router.patch("/status/:id", userController.updateUserStatus);
 
+router.get("/:id", userController.getUserById);
+
 module.exports = router;
