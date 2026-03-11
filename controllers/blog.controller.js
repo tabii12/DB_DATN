@@ -47,6 +47,16 @@ const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
 
+    const images = await BlogImage.find({
+      blog_id: { $in: blogIds },
+    }).lean();
+
+    const imageMap = {};
+    images.forEach((img) => {
+      if (!imageMap[img.blog_id]) imageMap[img.blog_id] = [];
+      imageMap[img.blog_id].push(img);
+    });
+
     return res.status(200).json({
       success: true,
       total: blogs.length,
