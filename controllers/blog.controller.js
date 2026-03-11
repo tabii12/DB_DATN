@@ -1,4 +1,5 @@
 const Blog = require("../models/blog.model");
+const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
 const createBlog = async (req, res) => {
   try {
@@ -9,6 +10,20 @@ const createBlog = async (req, res) => {
       content,
       created_by,
     });
+
+    const uploadedImages = await uploadMultipleImages(
+      req.files,
+      "pick_your_way/blogs",
+    );
+
+    if (uploadedImages.length) {
+      const images = uploadedImages.map((img) => ({
+        blog_id: newBlog._id,
+        ...img,
+      }));
+
+      await BlogImage.insertMany(images);
+    }
 
     await newBlog.save();
 
