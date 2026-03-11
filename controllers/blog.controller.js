@@ -59,10 +59,15 @@ const getAllBlogs = async (req, res) => {
       imageMap[img.blog_id].push(img);
     });
 
+    const result = blogs.map((blog) => ({
+      ...blog,
+      images: imageMap[blog._id] || [],
+    }));
+
     return res.status(200).json({
       success: true,
-      total: blogs.length,
-      data: blogs,
+      count: result.length,
+      data: result,
     });
   } catch (error) {
     return res.status(500).json({
