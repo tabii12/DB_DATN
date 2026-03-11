@@ -1,4 +1,5 @@
 const Blog = require("../models/blog.model");
+const BlogImage = require("../models/blogImage.model");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
 const createBlog = async (req, res) => {
@@ -9,6 +10,7 @@ const createBlog = async (req, res) => {
       title,
       content,
       created_by,
+      images: [],
     });
 
     const uploadedImages = await uploadMultipleImages(
