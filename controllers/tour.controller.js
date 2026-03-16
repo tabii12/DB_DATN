@@ -145,7 +145,7 @@ const getTourBySlug = async (req, res) => {
 
     /* ===== Comments ===== */
     const comments = await Comment.find({
-      tour_id: { $in: tourIds },
+      tour_id: tour._id,
     })
       .populate("user_id", "name avatar")
       .sort({ createdAt: -1 })
