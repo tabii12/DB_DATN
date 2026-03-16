@@ -1,6 +1,7 @@
 const Tour = require("../models/tour.model");
 const TourImage = require("../models/tourImage.model");
 const Description = require("../models/description.model");
+const Comment = require("../models/comment.model");
 
 const Itinerary = require("../models/itinerary.model");
 const ItineraryDetail = require("../models/itineraryDetail.model");
@@ -90,10 +91,19 @@ const getAllTours = async (req, res) => {
       });
     });
 
+    /* ===== Comments ===== */
+    const comments = await Comment.find({
+      tour_id: { $in: tourIds },
+    })
+      .populate("user_id", "name avatar")
+      .sort({ createdAt: -1 })
+      .lean();
+
     const result = tours.map((tour) => ({
       ...tour,
       images: imageMap[tour._id] || [],
       descriptions: descriptionMap[tour._id] || [],
+      comments: comments.filter((c) => c.tour_id.equals(tour._id)) || [],
     }));
 
     return res.status(200).json({
