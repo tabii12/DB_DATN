@@ -91,19 +91,11 @@ const getAllTours = async (req, res) => {
       });
     });
 
-    /* ===== Comments ===== */
-    const comments = await Comment.find({
-      tour_id: { $in: tourIds },
-    })
-      .populate("user_id", "name avatar")
-      .sort({ createdAt: -1 })
-      .lean();
-
     const result = tours.map((tour) => ({
       ...tour,
       images: imageMap[tour._id] || [],
       descriptions: descriptionMap[tour._id] || [],
-      comments: comments.filter((c) => c.tour_id.equals(tour._id)) || [],
+      
     }));
 
     return res.status(200).json({
@@ -149,6 +141,14 @@ const getTourBySlug = async (req, res) => {
       tour_id: tour._id,
     })
       .select("title content -_id")
+      .lean();
+
+    /* ===== Comments ===== */
+    const comments = await Comment.find({
+      tour_id: { $in: tourIds },
+    })
+      .populate("user_id", "name avatar")
+      .sort({ createdAt: -1 })
       .lean();
 
     /* ===== Itineraries ===== */
@@ -219,6 +219,7 @@ const getTourBySlug = async (req, res) => {
         descriptions,
         itineraries,
         trips,
+        comments
       },
     });
   } catch (error) {
