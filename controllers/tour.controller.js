@@ -12,6 +12,8 @@ const Trip = require("../models/trip.model");
 const cloudinary = require("../utils/cloudinary");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 
+const slugify = require("slugify");
+
 const createTour = async (req, res) => {
   try {
     const { name, hotel_id, category_id } = req.body;
@@ -23,8 +25,14 @@ const createTour = async (req, res) => {
       });
     }
 
+    const slug = slugify(name, {
+      lower: true,
+      strict: true,
+    });
+
     const newTour = await Tour.create({
       name,
+      slug,
       hotel_id,
       category_id,
     });
@@ -49,6 +57,7 @@ const createTour = async (req, res) => {
       data: newTour,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -95,7 +104,6 @@ const getAllTours = async (req, res) => {
       ...tour,
       images: imageMap[tour._id] || [],
       descriptions: descriptionMap[tour._id] || [],
-      
     }));
 
     return res.status(200).json({
@@ -219,7 +227,7 @@ const getTourBySlug = async (req, res) => {
         descriptions,
         itineraries,
         trips,
-        comments
+        comments,
       },
     });
   } catch (error) {
