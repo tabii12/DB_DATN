@@ -180,7 +180,7 @@ const getTourBySlug = async (req, res) => {
     const descriptions = await Description.find({
       tour_id: tour._id,
     })
-      .select("title content -_id")
+      .select("title content _id")
       .lean();
 
     /* ===== Comments ===== */
