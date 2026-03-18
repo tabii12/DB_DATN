@@ -15,11 +15,7 @@ router.get("/", tourController.getAllTours);
 
 router.get("/detail/:slug", tourController.getTourBySlug);
 
-router.put(
-  "/update/:slug",
-  upload.array("images", 5),
-  tourController.updateTour,
-);
+router.put("/update/:slug", tourController.updateTour);
 
 router.delete("/image/:imageId", tourController.deleteTourImage);
 
