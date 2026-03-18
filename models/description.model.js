@@ -6,7 +6,7 @@ const descriptionSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true,
+      
     },
 
     content: {
@@ -19,7 +19,6 @@ const descriptionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      index: true,
     },
   },
   {

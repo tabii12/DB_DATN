@@ -6,14 +6,13 @@ const reviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
+      
     },
 
     tour_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      index: true,
     },
 
     rating: {

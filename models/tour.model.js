@@ -15,28 +15,25 @@ const tourSchema = new mongoose.Schema(
       type: String,
       slug: "name",
       unique: true,
-      index: true,
+      
     },
 
     status: {
       type: String,
       enum: ["active", "inactive"],
       default: "active",
-      index: true,
     },
 
     hotel_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hotel",
       required: true,
-      index: true,
     },
 
     category_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
-      index: true,
     },
   },
   {

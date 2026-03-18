@@ -6,7 +6,7 @@ const tourImageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      index: true,
+      
     },
 
     image_url: {

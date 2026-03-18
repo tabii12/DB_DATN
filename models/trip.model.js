@@ -6,7 +6,7 @@ const tripSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      index: true,
+      
     },
 
     start_date: {
@@ -41,7 +41,6 @@ const tripSchema = new mongoose.Schema(
       type: String,
       enum: ["open", "closed", "full"],
       default: "open",
-      index: true,
     },
   },
   {

@@ -6,7 +6,7 @@ const blogImageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Blog",
       required: true,
-      index: true,
+      
     },
 
     image_url: {

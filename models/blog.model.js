@@ -9,7 +9,6 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
 
     slug: {
@@ -27,14 +26,12 @@ const blogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
     status: {
       type: String,
       enum: ["draft", "published", "hidden"],
       default: "draft",
-      index: true,
     },
   },
   {

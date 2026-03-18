@@ -6,14 +6,13 @@ const itineraryServiceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Itinerary",
       required: true,
-      index: true,
+      
     },
 
     service_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
       required: true,
-      index: true,
     },
 
     quantity: {

@@ -6,14 +6,12 @@ const itineraryDetailSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Itinerary",
       required: true,
-      index: true,
     },
 
     place_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Place",
       required: false,
-      index: true,
     },
 
     type: {

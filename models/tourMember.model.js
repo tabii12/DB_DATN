@@ -25,7 +25,6 @@ const tourMemberSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Trip",
       required: true,
-      index: true, // hay query theo trip → nên index
     },
   },
   {

@@ -7,7 +7,7 @@ const itinerarySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      index: true,
+      
     },
 
     day_number: {

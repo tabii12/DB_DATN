@@ -18,7 +18,7 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid"],
       default: "pending",
-      index: true,
+      
     },
 
     bank_code: {

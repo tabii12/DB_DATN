@@ -7,14 +7,12 @@ const bookingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Trip",
       required: true,
-      index: true,
     },
 
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
 
     booking_date: {
@@ -38,7 +36,6 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "cancelled"],
       default: "pending",
-      index: true,
     },
 
     payment: {

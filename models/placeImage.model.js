@@ -6,7 +6,7 @@ const placeImageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Place",
       required: true,
-      index: true,
+      
     },
 
     image_url: {
