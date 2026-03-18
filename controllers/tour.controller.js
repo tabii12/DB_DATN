@@ -158,7 +158,6 @@ const getTourBySlug = async (req, res) => {
     /* ===== Tour ===== */
     const tour = await Tour.findOne({
       slug,
-      status: "active",
     })
       .populate("category_id")
       .populate("hotel_id")
