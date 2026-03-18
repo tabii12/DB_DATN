@@ -37,24 +37,56 @@ const createTour = async (req, res) => {
       category_id,
     });
 
+    return res.status(201).json({
+      success: true,
+      message: "Tạo tour thành công",
+      data: newTour,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const uploadTourImages = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const tour = await Tour.findOne({ slug });
+
+    if (!tour) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tour",
+      });
+    }
+
     const uploadedImages = await uploadMultipleImages(
       req.files,
       "pick_your_way/tours",
     );
 
-    if (uploadedImages.length) {
-      const images = uploadedImages.map((img) => ({
-        tour_id: newTour._id,
-        ...img,
-      }));
-
-      await TourImage.insertMany(images);
+    if (!uploadedImages.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Không có ảnh upload",
+      });
     }
+
+    const images = uploadedImages.map((img) => ({
+      tour_id: tour._id,
+      ...img,
+    }));
+
+    await TourImage.insertMany(images);
 
     return res.status(201).json({
       success: true,
-      message: "Tạo tour thành công",
-      data: newTour,
+      message: "Upload ảnh thành công",
+      data: images,
     });
   } catch (error) {
     console.error(error);
@@ -361,6 +393,7 @@ const updateTourStatus = async (req, res) => {
 
 module.exports = {
   createTour,
+  uploadTourImages,
   getAllTours,
   getTourBySlug,
   updateTour,
