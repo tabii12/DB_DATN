@@ -290,6 +290,11 @@ const updateTour = async (req, res) => {
       }
     });
 
+    /* ===== Tự động cập nhật slug theo name ===== */
+    if (req.body.name) {
+      tour.slug = slugify(req.body.name, { lower: true, strict: true });
+    }
+
     await tour.save();
 
     /* ===== Upload new images ===== */
