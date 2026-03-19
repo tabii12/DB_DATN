@@ -173,11 +173,9 @@ const login = async (req, res) => {
     }
 
     /* ===== Tạo JWT ===== */
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || "your_secret_key",
-      { expiresIn: "7d" },
-    );
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     console.log("LOGIN SECRET:", process.env.JWT_SECRET);
 
