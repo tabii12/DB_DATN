@@ -41,6 +41,8 @@ const protect = async (req, res, next) => {
     /* ========= 5. Gắn req ========= */
     req.user = user;
 
+    console.log("MIDDLEWARE SECRET:", process.env.JWT_SECRET);
+
     next();
   } catch (error) {
     console.error("Auth error:", error.message);

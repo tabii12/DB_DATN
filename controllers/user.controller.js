@@ -179,6 +179,8 @@ const login = async (req, res) => {
       { expiresIn: "7d" },
     );
 
+    console.log("LOGIN SECRET:", process.env.JWT_SECRET);
+
     return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công",
