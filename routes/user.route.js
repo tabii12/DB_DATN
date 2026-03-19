@@ -19,6 +19,6 @@ router.patch("/status/:id", userController.updateUserStatus);
 
 router.get("/:id", userController.getUserById);
 
-router.post("/change-password", authMiddleware, userController.changePassword);
+router.put("/change-password", authMiddleware, userController.changePassword);
 
 module.exports = router;
