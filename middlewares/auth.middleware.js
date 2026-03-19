@@ -31,6 +31,7 @@ const protect = async (req, res, next) => {
     /* ========= 4. Lấy user ========= */
     const user = await User.findById(decoded.id).select("-password");
     console.log("Decoded JWT:", decoded);
+    console.log("MONGO URI:", process.env.MONGO_URI);
 
     if (!user) {
       return res.status(401).json({
