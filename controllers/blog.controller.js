@@ -77,6 +77,47 @@ const getAllBlogs = async (req, res) => {
   }
 };
 
+const getBlogBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: "Slug không được để trống",
+      });
+    }
+
+    const blog = await Blog.findOne({ slug }).lean();
+
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy blog",
+      });
+    }
+
+    const images = await BlogImage.find({
+      blog_id: blog._id,
+    }).lean();
+
+    const result = {
+      ...blog,
+      images,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const updateBlogContentBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -188,7 +229,9 @@ const deleteBlogBySlug = async (req, res) => {
 module.exports = {
   createBlog,
   getAllBlogs,
+  getBlogBySlug,
   updateBlogContentBySlug,
   updateBlogStatusBySlug,
   deleteBlogBySlug,
+  
 };

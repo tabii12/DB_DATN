@@ -7,6 +7,8 @@ router.post("/create", upload.array("images", 5), blogController.createBlog);
 
 router.get("/", blogController.getAllBlogs);
 
+router.get("/:slug", blogController.getBlogBySlug);
+
 router.patch("/:slug/content", blogController.updateBlogContentBySlug);
 
 router.patch("/:slug/status", blogController.updateBlogStatusBySlug);
