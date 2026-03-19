@@ -341,6 +341,49 @@ const getUserById = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu hiện tại và mới không được để trống",
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng",
+      });
+    }
+
+    const isMatch = await bcrupt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu hiện tại không chính xác",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrupt.hash(newPassword, salt);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    return res.json({ message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -349,4 +392,5 @@ module.exports = {
   getAllUsers,
   updateUserStatus,
   getUserById,
+  changePassword,
 };
