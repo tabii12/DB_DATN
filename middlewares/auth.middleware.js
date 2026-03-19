@@ -2,10 +2,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
 const protect = async (req, res, next) => {
-  let token;
-
   try {
-    /* ========= 1. Lấy token từ Header ========= */
+    let token;
+
+    /* ========= 1. Lấy token ========= */
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
@@ -13,32 +13,38 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    /* ========= 2. Nếu không có token ========= */
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Không có token, truy cập bị từ chối!",
+        message: "Không có token",
       });
     }
 
-    /* ========= 3. Giải mã token ========= */
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret_key");
+    /* ========= 2. Check ENV ========= */
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is missing");
+    }
 
-    /* ========= 4. Lấy thông tin user từ DB ========= */
+    /* ========= 3. Verify ========= */
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    /* ========= 4. Lấy user ========= */
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Người dùng không tồn tại",
+        message: "User không tồn tại",
       });
     }
 
-    /* ========= 5. Gắn user vào request ========= */
+    /* ========= 5. Gắn req ========= */
     req.user = user;
 
     next();
   } catch (error) {
+    console.error("Auth error:", error.message);
+
     return res.status(401).json({
       success: false,
       message: "Token không hợp lệ hoặc đã hết hạn!",
