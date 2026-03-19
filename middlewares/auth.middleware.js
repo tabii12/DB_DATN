@@ -30,7 +30,7 @@ const protect = async (req, res, next) => {
 
     /* ========= 4. Lấy user ========= */
     const user = await User.findById(decoded.id).select("-password");
-    cốnole.log("Decoded JWT:", decoded);
+    console.log("Decoded JWT:", decoded);
 
     if (!user) {
       return res.status(401).json({
