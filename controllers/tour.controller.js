@@ -2,12 +2,11 @@ const Tour = require("../models/tour.model");
 const TourImage = require("../models/tourImage.model");
 const Description = require("../models/description.model");
 const Comment = require("../models/comment.model");
-
 const Itinerary = require("../models/itinerary.model");
 const ItineraryDetail = require("../models/itineraryDetail.model");
-
 const PlaceImage = require("../models/placeImage.model");
 const Trip = require("../models/trip.model");
+const Favorite = require("../models/favorite.model");
 
 const cloudinary = require("../utils/cloudinary");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
@@ -250,6 +249,18 @@ const getTourBySlug = async (req, res) => {
       .sort({ start_date: 1 })
       .lean();
 
+    /* ===== Favorite ===== */
+    let isFavorite = false;
+
+    if (req.user?._id) {
+      const favorite = await Favorite.findOne({
+        user_id: req.user._id,
+        tour_id: tour._id,
+      });
+
+      isFavorite = !!favorite;
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -259,6 +270,7 @@ const getTourBySlug = async (req, res) => {
         itineraries,
         trips,
         comments,
+        isFavorite,
       },
     });
   } catch (error) {
