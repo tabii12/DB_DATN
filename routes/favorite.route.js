@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const favoriteController = require("../controllers/favorite.controller");
-const authMiddleware = require("../middlewares/auth.middleware");
+const { primaryAuth } = require("../middlewares/auth.middleware");
 
-router.post("/toggle", authMiddleware, favoriteController.toggleFavorite);
+router.post("/toggle", primaryAuth, favoriteController.toggleFavorite);
 
 module.exports = router;

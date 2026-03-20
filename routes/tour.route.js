@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const upload = require("../middlewares/multer");
 const tourController = require("../controllers/tour.controller");
+const { optionalAuth } = require("../middlewares/auth.middleware");
 
 router.post("/create", tourController.createTour);
 
@@ -13,7 +14,7 @@ router.post(
 
 router.get("/", tourController.getAllTours);
 
-router.get("/detail/:slug", tourController.getTourBySlug);
+router.get("/detail/:slug", optionalAuth, tourController.getTourBySlug);
 
 router.put("/update/:slug", tourController.updateTour);
 
