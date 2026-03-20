@@ -344,26 +344,25 @@ const getUserById = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, email } = req.body;
 
-    console.log(currentPassword, newPassword);
-
-    if (!currentPassword || !newPassword) {
+    if (!currentPassword || !newPassword || !email) {
       return res.status(400).json({
         success: false,
-        message: "Mật khẩu hiện tại và mới không được để trống",
+        message: "Email, mật khẩu hiện tại và mới không được để trống",
       });
     }
 
-    const user = await User.findById(req.user._id);
+    // 🔹 Tìm user theo email
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy người dùng",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    // 🔹 Kiểm tra mật khẩu hiện tại
+    const isMatch = await bcrypt.compare(currentPassword.trim(), user.password);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -371,6 +370,7 @@ const changePassword = async (req, res) => {
       });
     }
 
+    // 🔹 Hash mật khẩu mới
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
