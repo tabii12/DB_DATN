@@ -13,7 +13,10 @@ const toggleFavorite = async (req, res) => {
       });
     }
 
-    const existed = await Favorite.findOne({ user_id, tour_id });
+    const existed = await Favorite.findOne({
+      user_id,
+      tour_id: new mongoose.Types.ObjectId(tour_id),
+    });
 
     if (existed) {
       await existed.deleteOne();
@@ -24,7 +27,10 @@ const toggleFavorite = async (req, res) => {
       });
     }
 
-    await Favorite.create({ user_id, tour_id });
+    await Favorite.create({
+      user_id,
+      tour_id: new mongoose.Types.ObjectId(tour_id),
+    });
 
     return res.json({
       success: true,
