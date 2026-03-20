@@ -1,4 +1,5 @@
 const Favorite = require("../models/favorite.model");
+const Tour = require("../models/tour.model");
 const mongoose = require("mongoose");
 
 const toggleFavorite = async (req, res) => {
@@ -54,4 +55,35 @@ const toggleFavorite = async (req, res) => {
   }
 };
 
-module.exports = { toggleFavorite };
+const getMyFavorites = async (req, res) => {
+  try {
+    const user_id = req.user._id;
+
+    const favorites = await Favorite.find({ user_id }).lean();
+
+    const tourIds = favorites.map((f) => f.tour_id);
+
+    const tours = await Tour.find({
+      _id: { $in: tourIds },
+    })
+      .populate("category_id")
+      .populate("hotel_id")
+      .lean();
+
+    return res.json({
+      success: true,
+      data: tours,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+module.exports = {
+  toggleFavorite,
+  getMyFavorites,
+};
