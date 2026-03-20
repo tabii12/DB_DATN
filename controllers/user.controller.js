@@ -344,45 +344,29 @@ const getUserById = async (req, res) => {
 
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword, email } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword || !email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email, mật khẩu hiện tại và mới không được để trống",
-      });
-    }
-
-    // 🔹 Tìm user theo email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: req.user.email });
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy người dùng" });
+      return res.status(404).json({ message: "Không tìm thấy user" });
     }
 
-    // 🔹 Kiểm tra mật khẩu hiện tại
     const isMatch = await bcrypt.compare(currentPassword.trim(), user.password);
+
     if (!isMatch) {
       return res.status(400).json({
-        success: false,
         message: "Mật khẩu hiện tại không chính xác",
       });
     }
 
-    // 🔹 Hash mật khẩu mới
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
 
     user.password = hashedPassword;
     await user.save();
 
     return res.json({ message: "Đổi mật khẩu thành công" });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 
