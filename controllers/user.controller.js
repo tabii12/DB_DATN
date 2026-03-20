@@ -359,9 +359,8 @@ const changePassword = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
-
-    user.password = hashedPassword;
+    user.password = newPassword.trim();
+    
     await user.save();
 
     return res.json({ message: "Đổi mật khẩu thành công" });
