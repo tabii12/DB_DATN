@@ -1,5 +1,5 @@
 const Favorite = require("../models/favorite.model");
-const Tour = require("../models/tour.model");
+const mongoose = require("mongoose");
 
 const toggleFavorite = async (req, res) => {
   try {
