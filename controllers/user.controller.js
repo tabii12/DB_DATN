@@ -4,7 +4,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+);
 
 const register = async (req, res) => {
   try {
@@ -360,7 +363,7 @@ const changePassword = async (req, res) => {
     }
 
     user.password = newPassword.trim();
-    
+
     await user.save();
 
     return res.json({ message: "Đổi mật khẩu thành công" });
