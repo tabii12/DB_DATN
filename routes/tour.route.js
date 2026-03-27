@@ -14,6 +14,8 @@ router.post(
 
 router.get("/", tourController.getAllTours);
 
+router.get("/admin", tourController.getAllToursAdmin);
+
 router.get("/detail/:slug", optionalAuth, tourController.getTourBySlug);
 
 router.put("/update/:slug", tourController.updateTour);
