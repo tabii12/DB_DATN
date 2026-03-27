@@ -98,7 +98,7 @@ const uploadTourImages = async (req, res) => {
 
 const getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find()
+    const tours = await Tour.find({ status: "active" })
       .populate("category_id")
       .populate("hotel_id")
       .sort({ createdAt: -1 })
