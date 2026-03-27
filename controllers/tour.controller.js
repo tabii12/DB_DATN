@@ -150,6 +150,60 @@ const getAllTours = async (req, res) => {
   }
 };
 
+const getAllToursAdmin = async (req, res) => {
+  try {
+    const tours = await Tour.find()
+      .populate("category_id")
+      .populate("hotel_id")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const tourIds = tours.map((t) => t._id);
+
+    /* ===== Images ===== */
+    const images = await TourImage.find({
+      tour_id: { $in: tourIds },
+    }).lean();
+
+    const imageMap = {};
+    images.forEach((img) => {
+      if (!imageMap[img.tour_id]) imageMap[img.tour_id] = [];
+      imageMap[img.tour_id].push(img);
+    });
+
+    /* ===== Descriptions ===== */
+    const descriptions = await Description.find({
+      tour_id: { $in: tourIds },
+    }).lean();
+
+    const descriptionMap = {};
+    descriptions.forEach((desc) => {
+      if (!descriptionMap[desc.tour_id]) descriptionMap[desc.tour_id] = [];
+      descriptionMap[desc.tour_id].push({
+        title: desc.title,
+        content: desc.content,
+      });
+    });
+
+    const result = tours.map((tour) => ({
+      ...tour,
+      images: imageMap[tour._id] || [],
+      descriptions: descriptionMap[tour._id] || [],
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const getTourBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -411,6 +465,7 @@ module.exports = {
   createTour,
   uploadTourImages,
   getAllTours,
+  getAllToursAdmin,
   getTourBySlug,
   updateTour,
   deleteTourImage,
