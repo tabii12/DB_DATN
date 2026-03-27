@@ -26,6 +26,7 @@ var categoryRoutes = require("./routes/category.route");
 var homeRouter = require("./routes/home.route");
 var commentRoutes = require("./routes/comment.route");
 var favoriteRoutes = require("./routes/favorite.route");
+var saleRoutes = require("./routes/sale.route");
 
 var app = express();
 
@@ -58,6 +59,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/home", homeRouter);
 app.use("/api/comments", commentRoutes);
 app.use("/api/favorites", favoriteRoutes);
+app.use("/api/sales", saleRoutes);
 
 app.use(function (req, res, next) {
   next(createError(404));
