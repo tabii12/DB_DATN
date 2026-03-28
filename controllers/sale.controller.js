@@ -9,68 +9,115 @@ const createSale = async (req, res) => {
       discount,
     });
 
-    res.status(201).json(sale);
+    return res.status(201).json({
+      success: true,
+      message: "Sale created successfully",
+      data: sale,
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 const getAllSales = async (req, res) => {
   try {
-    const sales = await Sale.findAll();
-    res.status(200).json(sales);
+    const sales = await Sale.find().sort({ createdAt: -1 }).lean();
+
+    return res.status(200).json({
+      success: true,
+      count: sales.length,
+      data: sales,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 const getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
-    const sale = await Sale.findById(id);
+
+    const sale = await Sale.findById(id).lean();
 
     if (!sale) {
-      return res.status(404).json({ message: "Sale not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Sale not found",
+      });
     }
 
-    res.status(200).json(sale);
+    return res.status(200).json({
+      success: true,
+      data: sale,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 const updateSaleById = async (req, res) => {
   try {
     const { id } = req.params;
+
     const sale = await Sale.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
-    });
+    }).lean();
 
     if (!sale) {
-      return res.status(404).json({ message: "Sale not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Sale not found",
+      });
     }
 
-    res.status(200).json(sale);
+    return res.status(200).json({
+      success: true,
+      message: "Sale updated successfully",
+      data: sale,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 const deleteSaleById = async (req, res) => {
   try {
     const { id } = req.params;
+
     const sale = await Sale.findByIdAndDelete(id);
 
     if (!sale) {
-      return res.status(404).json({ message: "Sale not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Sale not found",
+      });
     }
 
-    res.status(200).json({ message: "Sale deleted successfully" });
+    return res.status(200).json({
+      success: true,
+      message: "Sale deleted successfully",
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
+
 module.exports = {
   createSale,
   getAllSales,
