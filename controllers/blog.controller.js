@@ -6,12 +6,7 @@ const createBlog = async (req, res) => {
   try {
     const { title, content, created_by } = req.body;
 
-    const newBlog = new Blog({
-      title,
-      content,
-      created_by,
-      images: [],
-    });
+    const newBlog = new Blog({ title, content, created_by });
 
     const uploadedImages = await uploadMultipleImages(
       req.files,
@@ -27,12 +22,10 @@ const createBlog = async (req, res) => {
       await BlogImage.insertMany(images);
     }
 
-    await newBlog.save();
-
     res.status(201).json({
       success: true,
       message: "Blog created successfully",
-      data: newBlog,
+      data: newBlog, // slug đã có ở đây
     });
   } catch (error) {
     res.status(500).json({
@@ -233,5 +226,4 @@ module.exports = {
   updateBlogContentBySlug,
   updateBlogStatusBySlug,
   deleteBlogBySlug,
-  
 };
