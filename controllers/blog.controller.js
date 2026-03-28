@@ -1,13 +1,31 @@
 const Blog = require("../models/blog.model");
 const BlogImage = require("../models/blogImage.model");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
+const slugify = require("slugify");
 
 const createBlog = async (req, res) => {
   try {
     const { title, content, created_by } = req.body;
 
-    const newBlog = new Blog({ title, content, created_by });
+    if (!title || !content || !created_by) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu dữ liệu bắt buộc",
+      });
+    }
 
+    // 🔹 Gen slug ngay trong controller
+    const slug = slugify(title, { lower: true, strict: true });
+
+    const newBlog = await Blog.create({
+      title,
+      slug,
+      content,
+      created_by,
+      images: [],
+    });
+
+    // Upload ảnh nếu có
     const uploadedImages = await uploadMultipleImages(
       req.files,
       "pick_your_way/blogs",
@@ -25,9 +43,10 @@ const createBlog = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Blog created successfully",
-      data: newBlog, // slug đã có ở đây
+      data: newBlog,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Error creating blog",
