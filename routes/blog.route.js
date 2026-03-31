@@ -9,10 +9,16 @@ router.get("/", blogController.getAllBlogs);
 
 router.get("/:slug", blogController.getBlogBySlug);
 
-router.patch("/:slug/content", blogController.updateBlogContentBySlug);
+router.put(
+  "/:slug",
+  upload.array("images", 10),
+  blogController.updateBlogContentBySlug,
+);
 
 router.patch("/:slug/status", blogController.updateBlogStatusBySlug);
 
 router.delete("/:slug", blogController.deleteBlogBySlug);
+
+router.delete("/image/:imageId", blogController.deleteBlogImage);
 
 module.exports = router;

@@ -2,7 +2,9 @@ const Blog = require("../models/blog.model");
 const BlogImage = require("../models/blogImage.model");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
 const slugify = require("slugify");
+const cloudinary = require("cloudinary").v2;
 
+// CREATE BLOG
 const createBlog = async (req, res) => {
   try {
     const { title, content, created_by } = req.body;
@@ -14,7 +16,6 @@ const createBlog = async (req, res) => {
       });
     }
 
-    // 🔹 Gen slug ngay trong controller
     const slug = slugify(title, { lower: true, strict: true });
 
     const newBlog = await Blog.create({
@@ -22,16 +23,14 @@ const createBlog = async (req, res) => {
       slug,
       content,
       created_by,
-      images: [],
     });
 
-    // Upload ảnh nếu có
-    const uploadedImages = await uploadMultipleImages(
-      req.files,
-      "pick_your_way/blogs",
-    );
+    if (req.files?.length) {
+      const uploadedImages = await uploadMultipleImages(
+        req.files,
+        "pick_your_way/blogs",
+      );
 
-    if (uploadedImages.length) {
       const images = uploadedImages.map((img) => ({
         blog_id: newBlog._id,
         ...img,
@@ -40,26 +39,25 @@ const createBlog = async (req, res) => {
       await BlogImage.insertMany(images);
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Blog created successfully",
       data: newBlog,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Error creating blog",
-      error: error.message,
+      message: error.message,
     });
   }
 };
 
+// GET ALL BLOGS
 const getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 }).lean();
 
-    const blogIds = blogs.map((t) => t._id);
+    const blogIds = blogs.map((b) => b._id);
 
     const images = await BlogImage.find({
       blog_id: { $in: blogIds },
@@ -89,16 +87,10 @@ const getAllBlogs = async (req, res) => {
   }
 };
 
+// GET BLOG BY SLUG
 const getBlogBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-
-    if (!slug) {
-      return res.status(400).json({
-        success: false,
-        message: "Slug không được để trống",
-      });
-    }
 
     const blog = await Blog.findOne({ slug }).lean();
 
@@ -113,14 +105,12 @@ const getBlogBySlug = async (req, res) => {
       blog_id: blog._id,
     }).lean();
 
-    const result = {
-      ...blog,
-      images,
-    };
-
     return res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        ...blog,
+        images,
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -130,6 +120,7 @@ const getBlogBySlug = async (req, res) => {
   }
 };
 
+// UPDATE BLOG
 const updateBlogContentBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -140,11 +131,8 @@ const updateBlogContentBySlug = async (req, res) => {
       ...(content && { content }),
     };
 
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No content to update",
-      });
+    if (title) {
+      updateData.slug = slugify(title, { lower: true, strict: true });
     }
 
     const blog = await Blog.findOneAndUpdate({ slug }, updateData, {
@@ -159,9 +147,23 @@ const updateBlogContentBySlug = async (req, res) => {
       });
     }
 
+    if (req.files?.length) {
+      const uploadedImages = await uploadMultipleImages(
+        req.files,
+        "pick_your_way/blogs",
+      );
+
+      const images = uploadedImages.map((img) => ({
+        blog_id: blog._id,
+        ...img,
+      }));
+
+      await BlogImage.insertMany(images);
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Blog content updated successfully",
+      message: "Blog updated successfully",
       data: blog,
     });
   } catch (error) {
@@ -172,6 +174,7 @@ const updateBlogContentBySlug = async (req, res) => {
   }
 };
 
+// UPDATE STATUS
 const updateBlogStatusBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -187,10 +190,7 @@ const updateBlogStatusBySlug = async (req, res) => {
     const blog = await Blog.findOneAndUpdate(
       { slug },
       { status },
-      {
-        new: true,
-        runValidators: true,
-      },
+      { new: true, runValidators: true },
     );
 
     if (!blog) {
@@ -202,7 +202,7 @@ const updateBlogStatusBySlug = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Blog status updated successfully",
+      message: "Status updated",
       data: blog,
     });
   } catch (error) {
@@ -213,6 +213,7 @@ const updateBlogStatusBySlug = async (req, res) => {
   }
 };
 
+// DELETE BLOG
 const deleteBlogBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -226,9 +227,40 @@ const deleteBlogBySlug = async (req, res) => {
       });
     }
 
+    await BlogImage.deleteMany({ blog_id: blog._id });
+
     return res.status(200).json({
       success: true,
-      message: "Blog deleted successfully",
+      message: "Deleted successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// DELETE IMAGE
+const deleteBlogImage = async (req, res) => {
+  try {
+    const { imageId } = req.params;
+
+    const image = await BlogImage.findById(imageId);
+
+    if (!image) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy ảnh",
+      });
+    }
+
+    await cloudinary.uploader.destroy(image.public_id);
+    await BlogImage.findByIdAndDelete(imageId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Xóa ảnh thành công",
     });
   } catch (error) {
     return res.status(500).json({
@@ -245,4 +277,5 @@ module.exports = {
   updateBlogContentBySlug,
   updateBlogStatusBySlug,
   deleteBlogBySlug,
+  deleteBlogImage,
 };
