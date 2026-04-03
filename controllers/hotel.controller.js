@@ -36,7 +36,6 @@ const createHotel = async (req, res) => {
   }
 };
 
-
 const getAllHotels = async (req, res) => {
   try {
     const hotels = await Hotel.find({ status: "active" }).sort({

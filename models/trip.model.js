@@ -6,7 +6,6 @@ const tripSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tour",
       required: true,
-      
     },
 
     start_date: {
@@ -19,6 +18,14 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
+    // 👉 giá gốc (chưa gồm hotel)
+    base_price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    // 👉 giá cuối (đã gồm hotel)
     price: {
       type: Number,
       required: true,
@@ -53,19 +60,36 @@ const tripSchema = new mongoose.Schema(
    VALIDATION LOGIC
 ========================== */
 tripSchema.pre("save", function (next) {
-  // end_date phải sau start_date
-  if (this.end_date < this.start_date) {
-    return next(new Error("Ngày kết thúc không thể trước ngày bắt đầu."));
+  // ===== DATE VALIDATION =====
+  if (this.end_date <= this.start_date) {
+    return next(new Error("Ngày kết thúc phải sau ngày bắt đầu."));
   }
 
-  // booked_people không vượt max_people
+  // ===== BOOKING VALIDATION =====
   if (this.booked_people > this.max_people) {
     return next(new Error("Số người đặt không thể vượt quá số chỗ tối đa."));
   }
 
-  // auto full khi đủ chỗ
+  // ===== AUTO STATUS =====
   if (this.booked_people === this.max_people) {
     this.status = "full";
+  } else if (this.booked_people === 0) {
+    this.status = "open";
+  }
+
+  next();
+});
+
+/* ==========================
+   AUTO UPDATE STATUS KHI UPDATE
+========================== */
+tripSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+
+  if (update.booked_people !== undefined && update.max_people !== undefined) {
+    if (update.booked_people >= update.max_people) {
+      update.status = "full";
+    }
   }
 
   next();
