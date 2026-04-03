@@ -3,79 +3,153 @@ const Trip = require("../models/trip.model");
 const TourMember = require("../models/tourMember.model");
 
 const createBooking = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.user._id;
-    const { trip_id, total_members, members } = req.body;
+    const { trip_id, total_members, members, total_price } = req.body;
 
-    // 1️⃣ Check trip tồn tại
-    const trip = await Trip.findById(trip_id);
+    // 1️⃣ Check trip
+    const trip = await Trip.findById(trip_id).session(session);
     if (!trip) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Trip not found" });
     }
 
-    // 2️⃣ Validate số lượng người
-    if (total_members < 1) {
-      return res
-        .status(400)
-        .json({ message: "Total members must be at least 1" });
+    // 2️⃣ Validate số lượng
+    if (!total_members || total_members < 1) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "Total members must be at least 1",
+      });
     }
 
     if (
       total_members > 1 &&
       (!members || members.length !== total_members - 1)
     ) {
+      await session.abortTransaction();
       return res.status(400).json({
         message: "Members information is invalid",
       });
     }
 
-    // 3️⃣ Tính tổng tiền
-    const total_price = trip.price * total_members;
+    // 3️⃣ Validate member
+    if (members?.length > 0) {
+      for (const m of members) {
+        if (!m.name || !m.age) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            message: "Each member must have name and age",
+          });
+        }
+      }
+    }
 
-    // 4️⃣ Tạo booking
-    const booking = await Booking.create({
-      trip_id,
-      user_id: userId,
-      total_members,
-      total_price,
-      payment: {
-        amount: total_price,
-        status: "pending",
-        bank_code: "VCB",
-        bank_account_number: "0123456789",
-        bank_account_name: "CONG TY DU LICH ABC",
-        transfer_content: `BOOKING_${Date.now()}`,
-      },
-    });
+    // 4️⃣ Check seats
+    if (trip.max_seats) {
+      const booked = trip.booked_seats || 0;
+      if (booked + total_members > trip.max_seats) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          message: "Not enough available seats",
+        });
+      }
+    }
 
-    // 5️⃣ Tạo TourMember cho người đặt
-    await TourMember.create({
-      booking_id: booking._id,
-      user_id: userId,
-      is_owner: true,
-    });
+    // 5️⃣ Validate total_price (basic thôi)
+    if (!total_price || total_price <= 0) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "Invalid total price",
+      });
+    }
 
-    // 6️⃣ Tạo TourMember cho người đi cùng
-    if (members && members.length > 0) {
+    // 6️⃣ Tạo booking
+    const [bookingDoc] = await Booking.create(
+      [
+        {
+          trip_id,
+          user_id: userId,
+          total_members,
+          total_price,
+          status: "pending",
+          payment: {
+            amount: total_price,
+            status: "pending",
+            bank_code: "VCB",
+            bank_account_number: "0123456789",
+            bank_account_name: "CONG TY DU LICH ABC",
+            transfer_content: "PENDING",
+          },
+        },
+      ],
+      { session },
+    );
+
+    // 7️⃣ Update transfer content (QUAN TRỌNG)
+    bookingDoc.payment.transfer_content = `BOOKING_${bookingDoc._id}`;
+    await bookingDoc.save({ session });
+
+    // 8️⃣ Owner (người đặt)
+    await TourMember.create(
+      [
+        {
+          booking_id: bookingDoc._id,
+          user_id: userId,
+          name: req.user.name || "Người đặt",
+          id_card: `OWNER_${Date.now()}`,
+          is_owner: true,
+        },
+      ],
+      { session },
+    );
+
+    // 9️⃣ Members đi cùng
+    if (members?.length > 0) {
       const memberDocs = members.map((m) => ({
-        booking_id: booking._id,
+        booking_id: bookingDoc._id,
         name: m.name,
         age: m.age,
-        id_card: m.id_card,
+        id_card: m.id_card || `TEMP_${Date.now()}`,
         is_owner: false,
       }));
 
-      await TourMember.insertMany(memberDocs);
+      await TourMember.insertMany(memberDocs, { session });
     }
+
+    // 🔟 Update seats
+    if (trip.max_seats) {
+      trip.booked_seats = (trip.booked_seats || 0) + total_members;
+      await trip.save({ session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(201).json({
       success: true,
       message: "Booking created successfully",
-      data: booking,
+      data: {
+        booking: bookingDoc,
+        payment_info: {
+          bank: "VCB",
+          account_number: "0123456789",
+          account_name: "CONG TY DU LICH ABC",
+          amount: total_price,
+          content: bookingDoc.payment.transfer_content,
+        },
+      },
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -108,11 +182,15 @@ const getBookingDetail = async (req, res) => {
     const userId = req.user._id;
     const bookingId = req.params.id;
 
-    // 1️⃣ Tìm booking + populate trip
-    const booking = await Booking.findById(bookingId).populate({
-      path: "trip_id",
-      select: "name description start_date end_date price",
-    });
+    const booking = await Booking.findById(bookingId)
+      .populate({
+        path: "trip_id",
+        select: "name description start_date end_date price",
+      })
+      .populate({
+        path: "members",
+        select: "name age id_card is_owner",
+      });
 
     if (!booking) {
       return res.status(404).json({
@@ -121,7 +199,7 @@ const getBookingDetail = async (req, res) => {
       });
     }
 
-    // 2️⃣ Check quyền (chỉ chủ booking)
+    // 2️⃣ Check quyền
     if (booking.user_id.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -129,21 +207,13 @@ const getBookingDetail = async (req, res) => {
       });
     }
 
-    // 3️⃣ Lấy danh sách thành viên
-    const members = await TourMember.find({
-      booking_id: booking._id,
-    }).select("-__v");
-
     return res.status(200).json({
       success: true,
-      data: {
-        booking,
-        members,
-      },
+      data: booking,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Server error",
     });

@@ -1,31 +1,5 @@
 const TourMember = require("../models/tourMember.model");
-
-const createTourMember = async (req, res) => {
-  try {
-    const { name, age, id_card, booked_trip } = req.body;
-
-    const newTourMember = new TourMember({
-      name,
-      age,
-      id_card,
-      booked_trip,
-    });
-
-    await newTourMember.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Tour member created successfully",
-      data: newTourMember,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error creating tour member",
-      error: error.message,
-    });
-  }
-};
+const Booking = require("../models/booking.model");
 
 const getAllTourMembers = async (req, res) => {
   try {
@@ -48,14 +22,18 @@ const getAllTourMembersByTripId = async (req, res) => {
   try {
     const { trip_id } = req.params;
 
-    const tourMembers = await TourMember.find({ booked_trip: trip_id }).sort({
-      createdAt: -1,
+    const bookings = await Booking.find({ trip_id });
+
+    const bookingIds = bookings.map((b) => b._id);
+
+    const members = await TourMember.find({
+      booking_id: { $in: bookingIds },
     });
 
     return res.status(200).json({
       success: true,
-      total: tourMembers.length,
-      data: tourMembers,
+      total: members.length,
+      data: members,
     });
   } catch (error) {
     return res.status(500).json({
@@ -136,9 +114,8 @@ const deleteTourMemberById = async (req, res) => {
 };
 
 module.exports = {
-    createTourMember,
-    getAllTourMembers,
-    getAllTourMembersByTripId,
-    updateTourMemberById,
-    deleteTourMemberById,
-}
+  getAllTourMembers,
+  getAllTourMembersByTripId,
+  updateTourMemberById,
+  deleteTourMemberById,
+};

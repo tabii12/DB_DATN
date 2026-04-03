@@ -18,7 +18,6 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid"],
       default: "pending",
-      
     },
 
     bank_code: {
@@ -41,7 +40,6 @@ const paymentSchema = new mongoose.Schema(
 
     transfer_content: {
       type: String,
-      required: true,
       trim: true,
     },
 
@@ -54,6 +52,11 @@ const paymentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null, // 👈 admin xác nhận
+    },
+
+    note: {
+      type: String,
+      trim: true,
     },
   },
   {

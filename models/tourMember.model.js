@@ -10,26 +10,28 @@ const tourMemberSchema = new mongoose.Schema(
 
     age: {
       type: Number,
-      required: true,
       min: 0,
     },
 
     id_card: {
       type: String,
-      required: true,
-      unique: true,
       trim: true,
     },
 
-    booked_trip: {
+    booking_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Trip",
+      ref: "Booking",
       required: true,
+    },
+
+    is_owner: {
+      type: Boolean,
+      default: false,
     },
   },
   {
     timestamps: true,
-    versionKey: false, 
+    versionKey: false,
   },
 );
 

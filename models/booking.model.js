@@ -46,9 +46,20 @@ const bookingSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
-module.exports =
+bookingSchema.virtual("members", {
+  ref: "TourMember",
+  localField: "_id",
+  foreignField: "booking_id",
+});
+
+bookingSchema.set("toJSON", { virtuals: true });
+bookingSchema.set("toObject", { virtuals: true });
+
+const Booking =
   mongoose.models.Booking ||
   mongoose.model("Booking", bookingSchema, "bookings");
+
+module.exports = Booking;
