@@ -14,8 +14,6 @@ const tourSchema = new mongoose.Schema(
     slug: {
       type: String,
       slug: "name",
-      unique: true,
-      
     },
 
     status: {
