@@ -6,10 +6,20 @@ const createTrip = async (req, res) => {
     const { tour_id, start_date, end_date, max_people, base_price } = req.body;
 
     // ===== VALIDATE =====
-    if (!tour_id || !start_date || !end_date || !max_people || !base_price) {
+    const missingFields = [];
+
+    if (!tour_id) missingFields.push("tour_id");
+    if (!start_date) missingFields.push("start_date");
+    if (!end_date) missingFields.push("end_date");
+    if (!max_people) missingFields.push("max_people");
+    if (!base_price) missingFields.push("base_price");
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc",
+        missingFields,
+        receivedData: req.body,
       });
     }
 
@@ -66,7 +76,7 @@ const createTrip = async (req, res) => {
       end_date,
       max_people,
       price,
-      base_price, 
+      base_price,
     });
 
     return res.status(201).json({
