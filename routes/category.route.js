@@ -3,14 +3,14 @@ const router = express.Router();
 
 const categoryController = require("../controllers/category.controller");
 
-router.post("/create", categoryController.createCategory);
+// CREATE
+router.post("/", categoryController.createCategory);
 
+// READ
 router.get("/", categoryController.getAllCategories);
-
 router.get("/:slug", categoryController.getCategoryBySlug);
 
-router.put("/:slug", categoryController.updateCategory);
-
-router.patch("/:slug/status", categoryController.updateCategoryStatus);
+// UPDATE
+router.patch("/:slug", categoryController.updateCategory);
 
 module.exports = router;
