@@ -1,12 +1,16 @@
 const Category = require("../models/category.model");
+const slugify = require("slugify");
 
 const createCategory = async (req, res) => {
   try {
     const { name, status } = req.body;
 
+    const slug = slugify(name, { lower: true, strict: true });
+
     const category = await Category.create({
       name,
       status,
+      slug,
     });
 
     return res.status(201).json({
@@ -80,6 +84,8 @@ const updateCategory = async (req, res) => {
 
     if (name !== undefined) {
       updateData.name = name;
+
+      updateData.slug = slugify(name, { lower: true, strict: true });
     }
 
     if (status !== undefined) {
