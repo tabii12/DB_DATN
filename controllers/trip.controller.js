@@ -79,6 +79,12 @@ const createTrip = async (req, res) => {
       base_price,
     });
 
+    console.log({
+      hotelTotal,
+      hotelPerPerson,
+      finalPrice: price,
+    });
+
     return res.status(201).json({
       success: true,
       message: "Tạo trip thành công",
