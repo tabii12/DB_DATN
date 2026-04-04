@@ -12,5 +12,6 @@ router.get("/:slug", categoryController.getCategoryBySlug);
 
 // UPDATE
 router.patch("/:slug", categoryController.updateCategory);
+router.patch("/:slug/toggle", categoryController.toggleCategoryStatus);
 
 module.exports = router;

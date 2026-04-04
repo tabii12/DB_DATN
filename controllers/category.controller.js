@@ -126,9 +126,45 @@ const updateCategory = async (req, res) => {
   }
 };
 
+const toggleCategoryStatus = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const category = await Category.findOne({ slug });
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy category",
+      });
+    }
+
+    // đảo trạng thái
+    category.status = category.status === "active" ? "inactive" : "active";
+
+    await category.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Đã cập nhật trạng thái",
+      data: {
+        name: category.name,
+        slug: category.slug,
+        status: category.status,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createCategory,
   getAllCategories,
   getCategoryBySlug,
   updateCategory,
+  toggleCategoryStatus,
 };
