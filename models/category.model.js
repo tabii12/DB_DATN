@@ -13,7 +13,6 @@ const catorySchema = new mongoose.Schema(
     slug: {
       type: String,
       slug: "name",
-      unique: true,
     },
     status: {
       type: String,
