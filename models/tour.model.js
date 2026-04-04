@@ -33,6 +33,11 @@ const tourSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+
+    start_location: {
+      type: String,
+      required: true,
+    }
   },
   {
     timestamps: true,

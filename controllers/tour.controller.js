@@ -15,9 +15,9 @@ const slugify = require("slugify");
 
 const createTour = async (req, res) => {
   try {
-    const { name, hotel_id, category_id } = req.body;
+    const { name, hotel_id, category_id, start_location } = req.body;
 
-    if (!name || !hotel_id || !category_id) {
+    if (!name || !hotel_id || !category_id || !start_location) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc",
@@ -34,6 +34,7 @@ const createTour = async (req, res) => {
       slug,
       hotel_id,
       category_id,
+      start_location,
     });
 
     return res.status(201).json({
@@ -348,7 +349,7 @@ const updateTour = async (req, res) => {
     }
 
     /* ===== Update fields ===== */
-    const fields = ["name", "status", "hotel_id", "category_id"];
+    const fields = ["name", "status", "hotel_id", "category_id", "start_location"];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {
