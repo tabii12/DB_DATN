@@ -13,11 +13,6 @@ const tourMemberSchema = new mongoose.Schema(
       min: 0,
     },
 
-    id_card: {
-      type: String,
-      trim: true,
-    },
-
     booking_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
