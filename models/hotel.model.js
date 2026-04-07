@@ -13,7 +13,6 @@ const hotelSchema = new mongoose.Schema(
     slug: {
       type: String,
       slug: "name",
-      unique: true,
     },
     address: {
       type: String,
