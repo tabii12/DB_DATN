@@ -38,12 +38,6 @@ const tripSchema = new mongoose.Schema(
       min: 1,
     },
 
-    booked_people: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
     status: {
       type: String,
       enum: ["open", "closed", "full"],
