@@ -48,15 +48,13 @@ const createBooking = async (req, res) => {
       }
     }
 
-    // 4️⃣ Check seats
-    if (trip.max_seats) {
-      const booked = trip.booked_seats || 0;
-      if (booked + total_members > trip.max_seats) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          message: "Not enough available seats",
-        });
-      }
+    // 4️⃣ Check available people
+    const booked = trip.booked_people || 0;
+    if (booked + total_members > trip.max_people) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "Không còn đủ chỗ",
+      });
     }
 
     // 5️⃣ Validate total_price (basic thôi)
@@ -120,11 +118,9 @@ const createBooking = async (req, res) => {
       await TourMember.insertMany(memberDocs, { session });
     }
 
-    // 🔟 Update seats
-    if (trip.max_seats) {
-      trip.booked_seats = (trip.booked_seats || 0) + total_members;
-      await trip.save({ session });
-    }
+    // 🔟 Update booked_people
+    trip.booked_people += total_members;
+    await trip.save({ session });
 
     await session.commitTransaction();
     session.endSession();
@@ -352,6 +348,14 @@ const cancelBooking = async (req, res) => {
     }
 
     booking.status = "cancelled";
+
+    // Decrement trip booked_people
+    if (booking.trip_id) {
+      await Trip.findByIdAndUpdate(booking.trip_id, {
+        $inc: { booked_people: -booking.total_members },
+      });
+    }
+
     await booking.save();
 
     return res.status(200).json({
