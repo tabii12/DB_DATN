@@ -130,9 +130,10 @@ const createBooking = async (req, res) => {
       await TourMember.insertMany(memberDocs, { session });
     }
 
-    // 🔟 Update booked_people
-    trip.booked_people += total_members;
-    await trip.save({ session });
+    // 🔟 Update booked_people (dùng findByIdAndUpdate tránh full validation)
+    await Trip.findByIdAndUpdate(trip_id, { 
+      $inc: { booked_people: total_members }
+    }, { session });
 
     await session.commitTransaction();
     session.endSession();
