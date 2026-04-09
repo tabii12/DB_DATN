@@ -22,8 +22,7 @@ const createBooking = async (req, res) => {
       tourSlug,
       adults = 0,
       children = 0,
-      infants = 0,
-      members = [],
+      infants = 0
     } = req.body;
 
     const total_members = adults + children + infants;
@@ -33,7 +32,7 @@ const createBooking = async (req, res) => {
     const trip = await Trip.findById(trip_id).session(session);
     if (!trip) {
       await session.abortTransaction();
-      return res.status(404).json({ message: "Trip not found" });
+      return res.status(400).json({ message: "Trip not found" });
     }
 
     // 2️⃣ Validate số lượng
@@ -42,28 +41,6 @@ const createBooking = async (req, res) => {
       return res.status(400).json({
         message: "Tổng số người phải >= 1",
       });
-    }
-
-    if (
-      total_members > 1 &&
-      (!members || members.length !== total_members - 1)
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: "Số lượng members không khớp (phải = total_members - 1)",
-      });
-    }
-
-    // 3️⃣ Validate member
-    if (members?.length > 0) {
-      for (const m of members) {
-        if (!m.name || !m.age) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            message: "Each member must have name and age",
-          });
-        }
-      }
     }
 
     // 4️⃣ Check available people
@@ -121,32 +98,8 @@ const createBooking = async (req, res) => {
     bookingDoc.payment.transfer_content = `BOOKING_${bookingDoc._id}`;
     await bookingDoc.save({ session });
 
-    // 8️⃣ Owner (người đặt)
-    await TourMember.create(
-      [
-        {
-          booking_id: bookingDoc._id,
-          user_id: userId,
-          name: req.user.name || "Người đặt",
-          id_card: `OWNER_${Date.now()}`,
-          is_owner: true,
-        },
-      ],
-      { session },
-    );
+    // No TourMember - chỉ lưu số lượng
 
-    // 9️⃣ Members đi cùng
-    if (members?.length > 0) {
-      const memberDocs = members.map((m) => ({
-        booking_id: bookingDoc._id,
-        name: m.name,
-        age: m.age,
-        id_card: m.id_card || `TEMP_${Date.now()}`,
-        is_owner: false,
-      }));
-
-      await TourMember.insertMany(memberDocs, { session });
-    }
 
     // 🔟 Update booked_people (dùng findByIdAndUpdate tránh full validation)
     await Trip.findByIdAndUpdate(trip_id, { 

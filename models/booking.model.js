@@ -100,11 +100,7 @@ const bookingSchema = new mongoose.Schema(
   },
 );
 
-bookingSchema.virtual("members", {
-  ref: "TourMember",
-  localField: "_id",
-  foreignField: "booking_id",
-});
+
 
 bookingSchema.set("toJSON", { virtuals: true });
 bookingSchema.set("toObject", { virtuals: true });
