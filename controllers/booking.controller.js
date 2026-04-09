@@ -9,7 +9,16 @@ const createBooking = async (req, res) => {
 
   try {
     const userId = req.user._id;
-    const { trip_id, total_members, members, total_price } = req.body;
+    const { 
+      trip_id, 
+      adults = 0, 
+      children = 0,
+      infants = 0,
+      members, 
+      total_price 
+    } = req.body;
+
+    const total_members = adults + children + infants;
 
     // 1️⃣ Check trip
     const trip = await Trip.findById(trip_id).session(session);
@@ -19,10 +28,10 @@ const createBooking = async (req, res) => {
     }
 
     // 2️⃣ Validate số lượng
-    if (!total_members || total_members < 1) {
+    if (total_members < 1) {
       await session.abortTransaction();
       return res.status(400).json({
-        message: "Total members must be at least 1",
+        message: "Tổng số người phải >= 1",
       });
     }
 
@@ -32,7 +41,7 @@ const createBooking = async (req, res) => {
     ) {
       await session.abortTransaction();
       return res.status(400).json({
-        message: "Members information is invalid",
+        message: "Số lượng members không khớp (phải = total_members - 1)",
       });
     }
 
@@ -68,21 +77,24 @@ const createBooking = async (req, res) => {
     // 6️⃣ Tạo booking
     const [bookingDoc] = await Booking.create(
       [
-        {
-          trip_id,
-          user_id: userId,
-          total_members,
-          total_price,
-          status: "pending",
-          payment: {
-            amount: total_price,
+          {
+            trip_id,
+            user_id: userId,
+            total_members, // = adults + children + infants
+            adults,
+            children,
+            infants,
+            total_price,
             status: "pending",
-            bank_code: "VCB",
-            bank_account_number: "0123456789",
-            bank_account_name: "CONG TY DU LICH ABC",
-            transfer_content: "PENDING",
+            payment: {
+              amount: total_price,
+              status: "pending",
+              bank_code: "VCB",
+              bank_account_number: "0123456789",
+              bank_account_name: "CONG TY DU LICH ABC",
+              transfer_content: "PENDING",
+            },
           },
-        },
       ],
       { session },
     );

@@ -5,7 +5,7 @@ const bookingController = require("../controllers/booking.controller");
 const isAdmin = require("../middlewares/isAdmin.middleware");
 const { primaryAuth } = require("../middlewares/auth.middleware");
 
-router.post("/create", primaryAuth, bookingController.createBooking);
+router.post("/", primaryAuth, bookingController.createBooking);
 
 router.get("/my-bookings", primaryAuth, bookingController.getMyBookings);
 
