@@ -14,6 +14,7 @@ const createBooking = async (req, res) => {
       adults = 0,
       children = 0,
       infants = 0,
+      members = [],
       total_price,
     } = req.body;
 
