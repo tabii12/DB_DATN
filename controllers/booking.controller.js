@@ -122,7 +122,10 @@ const createBooking = async (req, res) => {
       },
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
     session.endSession();
 
     console.error(error);
