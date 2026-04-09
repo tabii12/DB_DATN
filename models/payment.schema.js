@@ -4,7 +4,7 @@ const paymentSchema = new mongoose.Schema(
   {
     method: {
       type: String,
-      enum: ["bank_transfer"],
+      enum: ["bank_transfer", "vnpay"],
       default: "bank_transfer",
     },
 
@@ -16,31 +16,72 @@ const paymentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "paid"],
+      enum: ["pending", "paid", "failed"],
       default: "pending",
     },
 
+    // VNPAY fields
+    vnp_Amount: {
+      type: String,
+      default: null
+    },
+    vnp_BankCode: {
+      type: String,
+      default: null
+    },
+    vnp_BankTranNo: {
+      type: String,
+      default: null
+    },
+    vnp_CardType: {
+      type: String,
+      default: null
+    },
+    vnp_OrderInfo: {
+      type: String,
+      default: null
+    },
+    vnp_PayDate: {
+      type: Date,
+      default: null
+    },
+    vnp_ResponseCode: {
+      type: String,
+      default: null
+    },
+    vnp_TmnCode: {
+      type: String,
+      default: null
+    },
+    vnp_TransactionNo: {
+      type: String,
+      default: null
+    },
+    vnp_TransactionStatus: {
+      type: String,
+      default: null
+    },
+    vnp_TxnRef: {
+      type: String,
+      default: null
+    },
+
+    // Bank transfer fallback
     bank_code: {
       type: String,
-      required: true,
-      trim: true,
+      default: null
     },
-
     bank_account_number: {
       type: String,
-      required: true,
-      trim: true,
+      default: null
     },
-
     bank_account_name: {
       type: String,
-      required: true,
-      trim: true,
+      default: null
     },
-
     transfer_content: {
       type: String,
-      trim: true,
+      default: null
     },
 
     paid_at: {
