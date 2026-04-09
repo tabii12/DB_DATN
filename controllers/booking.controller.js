@@ -76,7 +76,6 @@ const createBooking = async (req, res) => {
           total_price,
 
           status: bookingStatus,
-          paymentStatus: paymentStatus,
 
           payment: {
             method: vnpay ? "vnpay" : "bank_transfer",
