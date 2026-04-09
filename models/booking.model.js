@@ -15,17 +15,48 @@ const bookingSchema = new mongoose.Schema(
       required: true,
     },
 
-    booking_date: {
-      type: Date,
-      default: Date.now,
-    },
-
-    total_price: {
+    basePrice: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
-
+    city: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    departureDate: {
+      type: Date,
+      required: true
+    },
+    hotelName: {
+      type: String,
+      trim: true
+    },
+    grandTotal: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    singleRooms: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    thumbnail: {
+      type: String,
+      trim: true
+    },
+    tourName: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    tourSlug: {
+      type: String,
+      required: true,
+      trim: true
+    },
     adults: {
       type: Number,
       default: 0,
@@ -45,6 +76,11 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 1,
+    },
+    total_price: {
+      type: Number,
+      required: true,
+      min: 0,
     },
 
     status: {

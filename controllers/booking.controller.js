@@ -11,14 +11,23 @@ const createBooking = async (req, res) => {
     const userId = req.user._id;
     const {
       trip_id,
+      basePrice,
+      city,
+      departureDate,
+      hotelName,
+      grandTotal,
+      singleRooms = 0,
+      thumbnail,
+      tourName,
+      tourSlug,
       adults = 0,
       children = 0,
       infants = 0,
       members = [],
-      total_price,
     } = req.body;
 
     const total_members = adults + children + infants;
+    const total_price = grandTotal;
 
     // 1️⃣ Check trip
     const trip = await Trip.findById(trip_id).session(session);
@@ -79,16 +88,25 @@ const createBooking = async (req, res) => {
       [
         {
           trip_id,
+          basePrice,
+          city,
+          departureDate,
+          hotelName,
+          grandTotal,
+          singleRooms,
+          thumbnail,
+          tourName,
+          tourSlug,
           user_id: userId,
-          total_members, // = adults + children + infants
           adults,
           children,
           infants,
-          total_price,
+          total_members,
+          total_price: grandTotal,
           status: "pending",
           payment: {
             method: "bank_transfer",
-            amount: total_price,
+            amount: grandTotal,
             status: "pending",
             bank_code: "NCB",
             bank_account_number: "0123456789",
