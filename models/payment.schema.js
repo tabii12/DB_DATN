@@ -11,7 +11,6 @@ const paymentSchema = new mongoose.Schema({
   bank_code: String,
   bank_account_number: String,
   bank_account_name: String,
-  vnpay: Object,
   transfer_content: String,
 });
 

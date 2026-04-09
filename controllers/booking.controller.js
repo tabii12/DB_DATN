@@ -65,21 +65,19 @@ const createBooking = async (req, res) => {
     delete data.paymentStatus;
     delete data.status;
 
-    // 5️⃣ CREATE BOOKING (set luôn transfer_content)
     const bookingDoc = new Booking({
       ...data,
       user_id: userId,
       total_members,
       total_price,
       status: bookingStatus,
-      payment: {
+      vnpay: {
         method: vnpay ? "vnpay" : "bank_transfer",
         amount: total_price,
         status: paymentStatus,
         bank_code: vnpay?.vnp_BankCode || "NCB",
         bank_account_number: "0123456789",
         bank_account_name: "PICKYOURWAY COMPANY LIMITED",
-        vnpay: vnpay || null,
         transfer_content: `BOOKING_${new mongoose.Types.ObjectId()}`,
       },
     });

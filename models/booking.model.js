@@ -129,7 +129,7 @@ const bookingSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    payment: {
+    vnpay: {
       type: paymentSchema,
       default: {},
     },
