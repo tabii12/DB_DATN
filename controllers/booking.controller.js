@@ -61,7 +61,11 @@ const createBooking = async (req, res) => {
     const bookingStatus = isPaid ? "confirmed" : "pending";
     const paymentStatus = isPaid ? "paid" : "failed";
 
-    // 5️⃣ CREATE BOOKING
+    delete data.payment;
+    delete data.paymentStatus;
+    delete data.status;
+
+    // 5️⃣ CREATE BOOKING (set luôn transfer_content)
     const [bookingDoc] = await Booking.create(
       [
         {
@@ -72,29 +76,27 @@ const createBooking = async (req, res) => {
           total_price,
 
           status: bookingStatus,
+          paymentStatus: paymentStatus,
 
           payment: {
             method: vnpay ? "vnpay" : "bank_transfer",
             amount: total_price,
             status: paymentStatus,
 
-            // bank info fallback
             bank_code: vnpay?.vnp_BankCode || "NCB",
             bank_account_number: "0123456789",
             bank_account_name: "PICKYOURWAY COMPANY LIMITED",
 
             vnpay: vnpay || null,
+
+            transfer_content: `BOOKING_${new mongoose.Types.ObjectId()}`,
           },
         },
       ],
       { session },
     );
 
-    // 6️⃣ Transfer content
-    bookingDoc.payment.transfer_content = `BOOKING_${bookingDoc._id}`;
-    await bookingDoc.save({ session });
-
-    // 7️⃣ Update slot
+    // 6️⃣ Update slot
     await Trip.findByIdAndUpdate(
       trip_id,
       {
