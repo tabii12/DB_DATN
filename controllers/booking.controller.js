@@ -19,7 +19,6 @@ const createBooking = async (req, res) => {
       grandTotal,
       total,
       vnpay,
-      paymentStatus,
     } = data;
 
     const total_members = adults + children + infants;
@@ -59,7 +58,8 @@ const createBooking = async (req, res) => {
 
     const isPaid = vnpay?.vnp_ResponseCode === "00";
 
-    const bookingStatus = isPaid ? "confirmed" : "failed";
+    const bookingStatus = isPaid ? "confirmed" : "pending";
+    const paymentStatus = isPaid ? "paid" : "failed";
 
     // 5️⃣ CREATE BOOKING
     const [bookingDoc] = await Booking.create(
@@ -71,12 +71,12 @@ const createBooking = async (req, res) => {
           total_members,
           total_price,
 
-          status: "confirmed",
+          status: bookingStatus,
 
           payment: {
             method: vnpay ? "vnpay" : "bank_transfer",
             amount: total_price,
-            status: bookingStatus,
+            status: paymentStatus,
 
             // bank info fallback
             bank_code: vnpay?.vnp_BankCode || "NCB",
