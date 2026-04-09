@@ -9,32 +9,21 @@ const createBooking = async (req, res) => {
 
   try {
     const userId = req.user._id;
+    const data = req.body;
+
     const {
       trip_id,
-      basePrice,
-      city,
-      departureDate,
-      hotelName,
-      grandTotal,
-      singleRooms = 0,
-      thumbnail,
-      tourName,
-      tourSlug,
-      contactName,
-      contactEmail,
-      contactPhone,
-      paymentPct = 100,
-      payNow,
-      remaining,
-      total,
-      orderId,
       adults = 0,
       children = 0,
-      infants = 0
-    } = req.body;
+      infants = 0,
+      grandTotal,
+      total,
+      vnpay,
+      paymentStatus,
+    } = data;
 
     const total_members = adults + children + infants;
-    const total_price = grandTotal;
+    const total_price = grandTotal || total;
 
     // 1️⃣ Check trip
     const trip = await Trip.findById(trip_id).session(session);
@@ -51,7 +40,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 4️⃣ Check available people
+    // 3️⃣ Check slot
     const booked = trip.booked_people || 0;
     if (booked + total_members > trip.max_people) {
       await session.abortTransaction();
@@ -60,7 +49,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 5️⃣ Validate total_price (basic thôi)
+    // 4️⃣ Validate giá
     if (!total_price || total_price <= 0) {
       await session.abortTransaction();
       return res.status(400).json({
@@ -68,59 +57,52 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 6️⃣ Tạo booking
+    const isPaid = vnpay?.vnp_ResponseCode === "00";
+
+    const bookingStatus = isPaid ? "confirmed" : "pending";
+    const paymentStatusFinal = isPaid ? "paid" : "pending";
+
+    // 5️⃣ CREATE BOOKING
     const [bookingDoc] = await Booking.create(
       [
         {
-          trip_id,
-          basePrice,
-          city,
-          departureDate,
-          hotelName,
-          grandTotal,
-          singleRooms,
-          thumbnail,
-          tourName,
-          tourSlug,
-          contactName,
-          contactEmail,
-          contactPhone,
-          paymentPct,
-          payNow,
-          remaining,
-          total,
-          orderId,
+          ...data,
+
           user_id: userId,
-          adults,
-          children,
-          infants,
           total_members,
-          total_price: grandTotal || total,
-          status: "pending",
+          total_price,
+
+          status: bookingStatus,
+
           payment: {
-            method: "bank_transfer",
-            amount: grandTotal || total,
-            status: "pending",
-            bank_code: "NCB",
+            method: vnpay ? "vnpay" : "bank_transfer",
+            amount: total_price,
+            status: paymentStatusFinal,
+
+            // bank info fallback
+            bank_code: vnpay?.vnp_BankCode || "NCB",
             bank_account_number: "0123456789",
             bank_account_name: "PICKYOURWAY COMPANY LIMITED",
+
+            vnpay: vnpay || null,
           },
         },
       ],
       { session },
     );
 
-    // 7️⃣ Update transfer content (QUAN TRỌNG)
+    // 6️⃣ Transfer content
     bookingDoc.payment.transfer_content = `BOOKING_${bookingDoc._id}`;
     await bookingDoc.save({ session });
 
-    // No TourMember - chỉ lưu số lượng
-
-
-    // 🔟 Update booked_people (dùng findByIdAndUpdate tránh full validation)
-    await Trip.findByIdAndUpdate(trip_id, { 
-      $inc: { booked_people: total_members }
-    }, { session });
+    // 7️⃣ Update slot
+    await Trip.findByIdAndUpdate(
+      trip_id,
+      {
+        $inc: { booked_people: total_members },
+      },
+      { session },
+    );
 
     await session.commitTransaction();
     session.endSession();
@@ -131,9 +113,9 @@ const createBooking = async (req, res) => {
       data: {
         booking: bookingDoc,
         payment_info: {
-          bank: "VCB",
-          account_number: "0123456789",
-          account_name: "CONG TY DU LICH ABC",
+          bank: bookingDoc.payment.bank_code,
+          account_number: bookingDoc.payment.bank_account_number,
+          account_name: bookingDoc.payment.bank_account_name,
           amount: total_price,
           content: bookingDoc.payment.transfer_content,
         },
@@ -374,24 +356,31 @@ const cancelBooking = async (req, res) => {
 const updateVNPayPayment = async (req, res) => {
   try {
     const vnpTxnRef = req.query.vnp_TxnRef;
-    if (!vnpTxnRef) return res.redirect('https://pickyourway.vercel.app/checkout/confirmation?status=failed');
-    
-    // vnp_TxnRef format: timestamp_BPID 
-    const bookingId = vnpTxnRef.split('_')[1];
+    if (!vnpTxnRef)
+      return res.redirect(
+        "https://pickyourway.vercel.app/checkout/confirmation?status=failed",
+      );
+
+    // vnp_TxnRef format: timestamp_BPID
+    const bookingId = vnpTxnRef.split("_")[1];
     const booking = await Booking.findById(bookingId);
-    
-    if (!booking || booking.payment.status === 'paid') {
-      return res.redirect('https://pickyourway.vercel.app/checkout/confirmation?status=already');
+
+    if (!booking || booking.payment.status === "paid") {
+      return res.redirect(
+        "https://pickyourway.vercel.app/checkout/confirmation?status=already",
+      );
     }
 
     // Parse VNPAY success params
-    booking.payment.method = 'vnpay';
+    booking.payment.method = "vnpay";
     booking.payment.vnp_Amount = req.query.vnp_Amount;
     booking.payment.vnp_BankCode = req.query.vnp_BankCode;
     booking.payment.vnp_BankTranNo = req.query.vnp_BankTranNo;
     booking.payment.vnp_CardType = req.query.vnp_CardType;
     booking.payment.vnp_OrderInfo = req.query.vnp_OrderInfo;
-    booking.payment.vnp_PayDate = req.query.vnp_PayDate ? new Date(parseInt(req.query.vnp_PayDate)) : new Date();
+    booking.payment.vnp_PayDate = req.query.vnp_PayDate
+      ? new Date(parseInt(req.query.vnp_PayDate))
+      : new Date();
     booking.payment.vnp_ResponseCode = req.query.vnp_ResponseCode;
     booking.payment.vnp_TmnCode = req.query.vnp_TmnCode;
     booking.payment.vnp_TransactionNo = req.query.vnp_TransactionNo;
@@ -399,22 +388,30 @@ const updateVNPayPayment = async (req, res) => {
     booking.payment.vnp_TxnRef = vnpTxnRef;
 
     // Check success: vnp_ResponseCode='00' & vnp_TransactionStatus='00'
-    if (req.query.vnp_ResponseCode === '00' && req.query.vnp_TransactionStatus === '00') {
-      booking.payment.status = 'paid';
+    if (
+      req.query.vnp_ResponseCode === "00" &&
+      req.query.vnp_TransactionStatus === "00"
+    ) {
+      booking.payment.status = "paid";
       booking.payment.paid_at = booking.payment.vnp_PayDate;
-      booking.status = 'paid';
+      booking.status = "paid";
       await booking.save();
-      res.redirect(`https://pickyourway.vercel.app/checkout/confirmation?status=success&bookingId=${bookingId}`);
+      res.redirect(
+        `https://pickyourway.vercel.app/checkout/confirmation?status=success&bookingId=${bookingId}`,
+      );
     } else {
-      booking.payment.status = 'failed';
-      booking.status = 'cancelled';
+      booking.payment.status = "failed";
+      booking.status = "cancelled";
       await booking.save();
-      res.redirect(`https://pickyourway.vercel.app/checkout/confirmation?status=failed&bookingId=${bookingId}`);
+      res.redirect(
+        `https://pickyourway.vercel.app/checkout/confirmation?status=failed&bookingId=${bookingId}`,
+      );
     }
-
   } catch (error) {
-    console.error('VNPAY callback error:', error);
-    res.redirect('https://pickyourway.vercel.app/checkout/confirmation?status=error');
+    console.error("VNPAY callback error:", error);
+    res.redirect(
+      "https://pickyourway.vercel.app/checkout/confirmation?status=error",
+    );
   }
 };
 
@@ -425,5 +422,5 @@ module.exports = {
   getAllBookings,
   confirmPayment,
   cancelBooking,
-  updateVNPayPayment
+  updateVNPayPayment,
 };
