@@ -73,7 +73,7 @@ const createBooking = async (req, res) => {
       status: bookingStatus,
       vnpay: {
         method: vnpay ? "vnpay" : "bank_transfer",
-        amount: total_price,
+        amount: vnpay.amount,
         status: paymentStatus,
         bank_code: vnpay?.vnp_BankCode || "NCB",
         bank_account_number: "0123456789",
