@@ -57,10 +57,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const isPaid = vnpay?.vnp_ResponseCode === "00";
-
-    const bookingStatus = isPaid ? "confirmed" : "pending";
-
     // 5️⃣ CREATE BOOKING
     const [bookingDoc] = await Booking.create(
       [
@@ -76,7 +72,7 @@ const createBooking = async (req, res) => {
           payment: {
             method: vnpay ? "vnpay" : "bank_transfer",
             amount: total_price,
-            status: bookingStatus,
+            status: vnpay?.status,
 
             // bank info fallback
             bank_code: vnpay?.vnp_BankCode || "NCB",
