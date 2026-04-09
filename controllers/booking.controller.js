@@ -9,13 +9,12 @@ const createBooking = async (req, res) => {
 
   try {
     const userId = req.user._id;
-    const { 
-      trip_id, 
-      adults = 0, 
+    const {
+      trip_id,
+      adults = 0,
       children = 0,
       infants = 0,
-      members, 
-      total_price 
+      total_price,
     } = req.body;
 
     const total_members = adults + children + infants;
@@ -77,25 +76,24 @@ const createBooking = async (req, res) => {
     // 6️⃣ Tạo booking
     const [bookingDoc] = await Booking.create(
       [
-          {
-            trip_id,
-            user_id: userId,
-            total_members, // = adults + children + infants
-            adults,
-            children,
-            infants,
-            total_price,
+        {
+          trip_id,
+          user_id: userId,
+          total_members, // = adults + children + infants
+          adults,
+          children,
+          infants,
+          total_price,
+          status: "pending",
+          payment: {
+            method: "bank_transfer",
+            amount: total_price,
             status: "pending",
-            payment: {
-              method: "bank_transfer",
-              amount: total_price,
-              status: "pending",
-              bank_code: "NCB",
-              bank_account_number: "0123456789",
-              bank_account_name: "PICKYOURWAY COMPANY LIMITED", 
-              transfer_content: `BP${bookingDoc._id}`,
-            },
+            bank_code: "NCB",
+            bank_account_number: "0123456789",
+            bank_account_name: "PICKYOURWAY COMPANY LIMITED",
           },
+        },
       ],
       { session },
     );
