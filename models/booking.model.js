@@ -153,9 +153,9 @@ const bookingSchema = new mongoose.Schema(
       default: "success",
     },
 
-    payment: {
-      type: paymentSchema,
-      required: true,
+    vnpay: {
+      type: Object,
+      default: null,
     },
   },
   {
