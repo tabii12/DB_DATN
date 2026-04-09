@@ -57,6 +57,40 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    contactName: {
+      type: String,
+      trim: true
+    },
+    contactEmail: {
+      type: String,
+      trim: true
+    },
+    contactPhone: {
+      type: String,
+      trim: true
+    },
+    paymentPct: {
+      type: Number,
+      default: 100,
+      min: 0,
+      max: 100
+    },
+    payNow: {
+      type: Number,
+      min: 0
+    },
+    remaining: {
+      type: Number,
+      min: 0
+    },
+    total: {
+      type: Number,
+      min: 0
+    },
+    orderId: {
+      type: String,
+      trim: true
+    },
     adults: {
       type: Number,
       default: 0,
