@@ -17,10 +17,15 @@ const bookingSchema = new mongoose.Schema(
       index: true,
     },
 
-    basePrice: {
-      type: Number,
+    tourName: {
+      type: String,
       required: true,
-      min: 0,
+      trim: true,
+    },
+
+    hotelName: {
+      type: String,
+      trim: true,
     },
 
     city: {
@@ -29,86 +34,14 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
     },
 
-    departureDate: {
-      type: Date,
-      required: true,
-    },
-
-    hotelName: {
-      type: String,
-      trim: true,
-    },
-
-    grandTotal: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-
-    singleRooms: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-
     thumbnail: {
       type: String,
       trim: true,
     },
 
-    tourName: {
-      type: String,
+    departureDate: {
+      type: Date,
       required: true,
-      trim: true,
-    },
-
-    tourSlug: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    contactName: {
-      type: String,
-      trim: true,
-    },
-
-    contactEmail: {
-      type: String,
-      trim: true,
-    },
-
-    contactPhone: {
-      type: String,
-      trim: true,
-    },
-
-    paymentPct: {
-      type: Number,
-      default: 100,
-      min: 0,
-      max: 100,
-    },
-
-    payNow: {
-      type: Number,
-      min: 0,
-    },
-
-    remaining: {
-      type: Number,
-      min: 0,
-    },
-
-    total: {
-      type: Number,
-      min: 0,
-    },
-
-    orderId: {
-      type: String,
-      trim: true,
-      unique: true,
     },
 
     adults: {
@@ -135,10 +68,59 @@ const bookingSchema = new mongoose.Schema(
       min: 1,
     },
 
-    total_price: {
+    basePrice: {
       type: Number,
       required: true,
       min: 0,
+    },
+
+    total: {
+      type: Number,
+      min: 0,
+    },
+
+    singleRooms: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    payNow: {
+      type: Number,
+      min: 0,
+    },
+
+    remaining: {
+      type: Number,
+      min: 0,
+    },
+
+    paymentPct: {
+      type: Number,
+      default: 100,
+      min: 0,
+      max: 100,
+    },
+
+    contactName: {
+      type: String,
+      trim: true,
+    },
+
+    contactEmail: {
+      type: String,
+      trim: true,
+    },
+
+    contactPhone: {
+      type: String,
+      trim: true,
+    },
+
+    orderId: {
+      type: String,
+      trim: true,
+      unique: true,
     },
 
     status: {
@@ -147,15 +129,9 @@ const bookingSchema = new mongoose.Schema(
       default: "confirmed",
     },
 
-    paymentStatus: {
-      type: String,
-      enum: ["success", "failed"],
-      default: "success",
-    },
-
-    vnpay: {
-      type: Object,
-      default: null,
+    payment: {
+      type: paymentSchema,
+      default: {},
     },
   },
   {
@@ -164,11 +140,9 @@ const bookingSchema = new mongoose.Schema(
   },
 );
 
-// 🔥 Index tối ưu query
 bookingSchema.index({ user_id: 1 });
 bookingSchema.index({ trip_id: 1 });
 
-// Virtuals
 bookingSchema.set("toJSON", { virtuals: true });
 bookingSchema.set("toObject", { virtuals: true });
 
