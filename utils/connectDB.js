@@ -9,6 +9,8 @@ if (!cached) {
 async function connectDB() {
   if (cached.conn) return cached.conn;
 
+  console.log("🔥 Connecting MongoDB...");
+
   if (!cached.promise) {
     cached.promise = mongoose.connect(process.env.MONGO_URI, {
       bufferCommands: false,
@@ -16,6 +18,9 @@ async function connectDB() {
   }
 
   cached.conn = await cached.promise;
+
+  console.log("✅ MongoDB connected");
+
   return cached.conn;
 }
 

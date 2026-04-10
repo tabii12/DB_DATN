@@ -7,7 +7,6 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 
-var indexRouter = require("./routes/index.route");
 var userRouter = require("./routes/user.route");
 var hotelRouter = require("./routes/hotel.route");
 var tourRouter = require("./routes/tour.route");
@@ -46,7 +45,6 @@ app.use(cors({
   credentials: true
 }));
 
-app.use("/", indexRouter);
 app.use("/api/users", userRouter);
 app.use("/api/hotels", hotelRouter);
 app.use("/api/tours", tourRouter);
