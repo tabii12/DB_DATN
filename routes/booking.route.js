@@ -16,7 +16,7 @@ router.get("/vnpay/callback", bookingController.updateVNPayPayment);
 router.post("/", primaryAuth, bookingController.createBooking);
 router.get("/my-bookings", primaryAuth, bookingController.getMyBookings);
 
-router.get("/:id", primaryAuth, bookingController.getBookingDetail);
-router.patch("/:id/cancel", primaryAuth, bookingController.cancelBooking);
+router.get("/detail/:id", primaryAuth, bookingController.getBookingDetail);
+router.patch("/detail/:id/cancel", primaryAuth, bookingController.cancelBooking);
 
 module.exports = router;
