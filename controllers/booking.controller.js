@@ -11,6 +11,11 @@ const createBooking = async (req, res) => {
     const userId = req.user._id;
     const data = req.body;
 
+    if (data.departureDate) {
+      const [day, month, year] = data.departureDate.split("/");
+      data.departureDate = new Date(`${year}-${month}-${day}`);
+    }
+
     const {
       trip_id,
       adults = 0,
