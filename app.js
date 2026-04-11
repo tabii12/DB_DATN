@@ -24,6 +24,7 @@ var commentRoutes = require("./routes/comment.route");
 var favoriteRoutes = require("./routes/favorite.route");
 var saleRoutes = require("./routes/sale.route");
 var contactRoutes = require("./routes/contact.route");
+var serviceRoutes = require("./routes/service.route");
 
 var app = express();
 
@@ -63,6 +64,7 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/contacts", contactRoutes);
+app.use("/api/services", serviceRoutes);
 
 app.use(function (req, res, next) {
   next(createError(404));

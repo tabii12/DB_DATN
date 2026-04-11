@@ -8,6 +8,25 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
+    services: [
+      {
+        service_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Service",
+          required: true,
+        },
+        // Lưu lại giá tại thời điểm thêm vào Trip (đề phòng sau này bảng Service đổi giá)
+        unit_price: {
+          type: Number,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          default: 1,
+        },
+      },
+    ],
+
     start_date: {
       type: Date,
       required: true,
@@ -18,14 +37,15 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 👉 giá gốc (chưa gồm hotel)
+    // Giá gốc (Tổng các service tính theo giá nhập)
     base_price: {
       type: Number,
       required: true,
+      default: 0,
       min: 0,
     },
 
-    // 👉 giá cuối (đã gồm hotel)
+    // Giá cuối bán cho khách (base_price + lợi nhuận)
     price: {
       type: Number,
       required: true,
@@ -50,7 +70,6 @@ const tripSchema = new mongoose.Schema(
       default: "open",
     },
   },
-
   {
     timestamps: true,
     versionKey: false,
@@ -58,21 +77,24 @@ const tripSchema = new mongoose.Schema(
 );
 
 /* ==========================
-   VALIDATION LOGIC
+   VALIDATION & LOGIC
 ========================== */
 tripSchema.pre("save", function (next) {
-  // ===== DATE VALIDATION =====
+  // 1. Kiểm tra ngày tháng
   if (this.end_date <= this.start_date) {
     return next(new Error("Ngày kết thúc phải sau ngày bắt đầu."));
   }
 
-  // ===== BOOKING VALIDATION =====
-  if (this.booked_people > this.max_people) {
-    return next(new Error("Số người đặt không thể vượt quá số chỗ tối đa."));
+  // 2. Tự động tính base_price dựa trên mảng services (nếu có)
+  // Lưu ý: Logic này chỉ tính tổng thô, bạn có thể tinh chỉnh tùy unit của service
+  if (this.services && this.services.length > 0) {
+    this.base_price = this.services.reduce((total, item) => {
+      return total + item.unit_price * item.quantity;
+    }, 0);
   }
 
-  // ===== AUTO STATUS =====
-  if (this.booked_people === this.max_people) {
+  // 3. Tự động cập nhật trạng thái theo số người đặt
+  if (this.booked_people >= this.max_people) {
     this.status = "full";
   } else if (this.booked_people === 0) {
     this.status = "open";
@@ -81,22 +103,6 @@ tripSchema.pre("save", function (next) {
   next();
 });
 
-/* ==========================
-   AUTO UPDATE STATUS KHI UPDATE
-========================== */
-tripSchema.pre("findOneAndUpdate", function (next) {
-  const update = this.getUpdate();
-
-  if (update.booked_people !== undefined && update.max_people !== undefined) {
-    if (update.booked_people >= update.max_people) {
-      update.status = "full";
-    }
-  }
-
-  next();
-});
-
 const Trip =
   mongoose.models.Trip || mongoose.model("Trip", tripSchema, "trips");
-
 module.exports = Trip;
