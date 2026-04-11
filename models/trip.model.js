@@ -87,14 +87,6 @@ tripSchema.pre("save", function (next) {
     return next(new Error("Ngày kết thúc phải sau ngày bắt đầu."));
   }
 
-  // 2. Tự động tính base_price dựa trên mảng services (nếu có)
-  // Lưu ý: Logic này chỉ tính tổng thô, bạn có thể tinh chỉnh tùy unit của service
-  if (this.services && this.services.length > 0) {
-    this.base_price = this.services.reduce((total, item) => {
-      return total + item.unit_price * item.quantity;
-    }, 0);
-  }
-
   // 3. Tự động cập nhật trạng thái theo số người đặt
   if (this.booked_people >= this.max_people) {
     this.status = "full";
