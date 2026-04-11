@@ -202,7 +202,7 @@ const updateTripById = async (req, res) => {
         .json({ success: false, message: "Không tìm thấy trip" });
     }
 
-    // 1. Cập nhật các trường cơ bản từ body
+    // 1. Cập nhật các trường cơ bản
     const fields = [
       "start_date",
       "end_date",
@@ -216,12 +216,15 @@ const updateTripById = async (req, res) => {
       }
     });
 
-    // 2. Logic tái tính toán chi phí (Base Price) và Giá bán (Price)
+    // 2. Tính toán lại giá
     const isPriceAffected =
       updateData.services ||
       updateData.start_date ||
       updateData.end_date ||
       updateData.max_people;
+
+    // KHỞI TẠO BIẾN Ở ĐÂY để tránh lỗi "is not defined"
+    let totalBaseCostOfTour = 0;
 
     if (isPriceAffected) {
       const start = new Date(trip.start_date);
@@ -232,7 +235,6 @@ const updateTripById = async (req, res) => {
       );
       const days = nights + 1;
 
-      let totalBaseCostOfTour = 0; // Tổng chi phí cho cả đoàn
       const processedServices = [];
 
       if (trip.services && Array.isArray(trip.services)) {
@@ -243,14 +245,13 @@ const updateTripById = async (req, res) => {
           let serviceCost = 0;
           const unitPrice = serviceData.basePrice;
 
-          // Tính toán chi phí thực tế dựa trên loại hình dịch vụ
           switch (serviceData.unit) {
             case "per_person":
             case "per_meal":
               serviceCost = unitPrice * trip.max_people * (item.quantity || 1);
               break;
             case "per_room":
-              const rooms = Math.ceil(trip.max_people / 2); // Giả định 2 người/phòng
+              const rooms = Math.ceil(trip.max_people / 2);
               serviceCost = unitPrice * rooms * nights;
               break;
             case "per_day":
@@ -267,30 +268,28 @@ const updateTripById = async (req, res) => {
 
           processedServices.push({
             service_id: item.service_id,
-            unit_price: unitPrice, // Lưu đơn giá gốc tại thời điểm cập nhật
+            unit_price: unitPrice,
             quantity: item.quantity || 1,
           });
         }
       }
 
-      // Cập nhật lại mảng services đã xử lý
       trip.services = processedServices;
 
-      // QUAN TRỌNG: Tính toán giá gốc TRÊN MỖI ĐẦU NGƯỜI để hiển thị
+      // Tính giá gốc chia đầu người
       const basePricePerPerson = totalBaseCostOfTour / (trip.max_people || 1);
       trip.base_price = basePricePerPerson;
 
-      // Tính toán giá bán (Price) nếu Admin không tự nhập giá cụ thể
+      // Tính giá bán gợi ý
       if (updateData.price === undefined) {
-        const rawPrice = basePricePerPerson * 1.2; // Lợi nhuận kỳ vọng 20%
-        // Làm tròn lên hàng chục nghìn và trừ 1000 để có giá đẹp (ví dụ 4.199.000)
+        const rawPrice = basePricePerPerson * 1.2;
         trip.price = Math.ceil(rawPrice / 10000) * 10000 - 1000;
       } else {
         trip.price = updateData.price;
       }
     }
 
-    // 3. Tự động đóng trip nếu ngày kết thúc đã qua
+    // 3. Auto closed
     if (new Date(trip.end_date) < new Date()) {
       trip.status = "closed";
     }
@@ -301,15 +300,15 @@ const updateTripById = async (req, res) => {
       success: true,
       message: "Cập nhật và tính toán lại giá trip thành công",
       data: trip,
-      calculation_debug: {
-        total_group_cost: totalBaseCostOfTour,
-        price_per_person: trip.base_price,
+      debug: {
+        total_tour_cost: totalBaseCostOfTour,
+        person_count: trip.max_people,
       },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message || "Lỗi khi cập nhật trip",
+      message: error.message || "Lỗi hệ thống",
     });
   }
 };
