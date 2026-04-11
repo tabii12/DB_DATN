@@ -39,7 +39,7 @@ const getAllContacts = async (req, res) => {
   try {
     // Populate tour_id để biết khách liên hệ từ tour nào
     const contacts = await Contact.find()
-      .populate("tour_id", "tourName slug")
+      .populate("tour_id", "name slug")
       .sort({ createdAt: -1 })
       .lean();
 
