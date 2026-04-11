@@ -272,11 +272,12 @@ const updateTripById = async (req, res) => {
 
       // Cập nhật lại giá trị mới vào object trip
       trip.services = processedServices;
-      trip.base_price = totalBaseCost;
+      const basePricePerPerson = totalBaseCost / trip.max_people;
+      trip.base_price = basePricePerPerson;
 
       // Nếu admin không tự nhập giá bán mới, hệ thống tự gợi ý giá theo lợi nhuận 20%
       if (!updateData.price) {
-        const rawPrice = (totalBaseCost * 1.2) / trip.max_people;
+        const rawPrice = basePricePerPerson * 1.2;
         trip.price = Math.ceil(rawPrice / 10000) * 10000 - 1000;
       } else {
         trip.price = updateData.price;
