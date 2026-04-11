@@ -202,7 +202,7 @@ const updateTripById = async (req, res) => {
         .json({ success: false, message: "Không tìm thấy trip" });
     }
 
-    // 1. Cập nhật các trường cơ bản
+    // 1. Cập nhật các trường cơ bản từ body
     const fields = [
       "start_date",
       "end_date",
@@ -216,8 +216,7 @@ const updateTripById = async (req, res) => {
       }
     });
 
-    // 2. Logic tính toán lại giá nếu có thay đổi ngày hoặc dịch vụ
-    // Kiểm tra xem có thay đổi các yếu tố ảnh hưởng đến giá không
+    // 2. Logic tái tính toán chi phí (Base Price) và Giá bán (Price)
     const isPriceAffected =
       updateData.services ||
       updateData.start_date ||
@@ -227,13 +226,15 @@ const updateTripById = async (req, res) => {
     if (isPriceAffected) {
       const start = new Date(trip.start_date);
       const end = new Date(trip.end_date);
-      const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      const nights = Math.max(
+        1,
+        Math.ceil((end - start) / (1000 * 60 * 60 * 24)),
+      );
       const days = nights + 1;
 
-      let totalBaseCost = 0;
+      let totalBaseCostOfTour = 0; // Tổng chi phí cho cả đoàn
       const processedServices = [];
 
-      // Lặp qua danh sách services (mới hoặc cũ) để tính lại giá
       if (trip.services && Array.isArray(trip.services)) {
         for (const item of trip.services) {
           const serviceData = await Service.findById(item.service_id);
@@ -242,13 +243,14 @@ const updateTripById = async (req, res) => {
           let serviceCost = 0;
           const unitPrice = serviceData.basePrice;
 
+          // Tính toán chi phí thực tế dựa trên loại hình dịch vụ
           switch (serviceData.unit) {
             case "per_person":
             case "per_meal":
               serviceCost = unitPrice * trip.max_people * (item.quantity || 1);
               break;
             case "per_room":
-              const rooms = Math.ceil(trip.max_people / 2);
+              const rooms = Math.ceil(trip.max_people / 2); // Giả định 2 người/phòng
               serviceCost = unitPrice * rooms * nights;
               break;
             case "per_day":
@@ -261,30 +263,34 @@ const updateTripById = async (req, res) => {
               serviceCost = unitPrice * (item.quantity || 1);
           }
 
-          totalBaseCost += serviceCost;
+          totalBaseCostOfTour += serviceCost;
+
           processedServices.push({
             service_id: item.service_id,
-            unit_price: unitPrice,
+            unit_price: unitPrice, // Lưu đơn giá gốc tại thời điểm cập nhật
             quantity: item.quantity || 1,
           });
         }
       }
 
-      // Cập nhật lại giá trị mới vào object trip
+      // Cập nhật lại mảng services đã xử lý
       trip.services = processedServices;
-      const basePricePerPerson = totalBaseCost / trip.max_people;
+
+      // QUAN TRỌNG: Tính toán giá gốc TRÊN MỖI ĐẦU NGƯỜI để hiển thị
+      const basePricePerPerson = totalBaseCostOfTour / (trip.max_people || 1);
       trip.base_price = basePricePerPerson;
 
-      // Nếu admin không tự nhập giá bán mới, hệ thống tự gợi ý giá theo lợi nhuận 20%
-      if (!updateData.price) {
-        const rawPrice = basePricePerPerson * 1.2;
+      // Tính toán giá bán (Price) nếu Admin không tự nhập giá cụ thể
+      if (updateData.price === undefined) {
+        const rawPrice = basePricePerPerson * 1.2; // Lợi nhuận kỳ vọng 20%
+        // Làm tròn lên hàng chục nghìn và trừ 1000 để có giá đẹp (ví dụ 4.199.000)
         trip.price = Math.ceil(rawPrice / 10000) * 10000 - 1000;
       } else {
         trip.price = updateData.price;
       }
     }
 
-    // 3. Kiểm tra trạng thái đóng tour tự động
+    // 3. Tự động đóng trip nếu ngày kết thúc đã qua
     if (new Date(trip.end_date) < new Date()) {
       trip.status = "closed";
     }
@@ -295,6 +301,10 @@ const updateTripById = async (req, res) => {
       success: true,
       message: "Cập nhật và tính toán lại giá trip thành công",
       data: trip,
+      calculation_debug: {
+        total_group_cost: totalBaseCostOfTour,
+        price_per_person: trip.base_price,
+      },
     });
   } catch (error) {
     return res.status(500).json({
