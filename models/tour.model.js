@@ -37,13 +37,22 @@ const tourSchema = new mongoose.Schema(
     start_location: {
       type: String,
       required: true,
-    }
+    },
   },
   {
     timestamps: true,
     versionKey: false,
   },
 );
+
+tourSchema.virtual("images", {
+  ref: "TourImage", // Model của bảng ảnh
+  localField: "_id", // _id của bảng Tour
+  foreignField: "tour_id", // Trường tour_id bên bảng TourImage
+});
+
+tourSchema.set("toObject", { virtuals: true });
+tourSchema.set("toJSON", { virtuals: true });
 
 const Tour =
   mongoose.models.Tour || mongoose.model("Tour", tourSchema, "tours");

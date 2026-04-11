@@ -209,51 +209,50 @@ const getTourBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    /* ===== Tour ===== */
+    /* ===== 1. Tour (Chỉ lấy tour đang active) ===== */
     const tour = await Tour.findOne({
       slug,
+      status: "active", // Đảm bảo không hiện tour đã ẩn
     })
-      .populate("category_id")
+      .populate("category_id", "name") // Chỉ lấy tên category
       .populate("hotel_id")
       .lean();
 
     if (!tour) {
       return res.status(404).json({
         success: false,
-        message: "Không tìm thấy tour",
+        message: "Không tìm thấy tour hoặc tour đã bị tạm ẩn",
       });
     }
 
-    /* ===== Tour Images ===== */
-    const images = await TourImage.find({
-      tour_id: tour._id,
-    }).lean();
+    const tourId = tour._id;
 
-    /* ===== Descriptions ===== */
-    const descriptions = await Description.find({
-      tour_id: tour._id,
-    })
-      .select("title content _id")
-      .lean();
+    /* ===== 2. Thực hiện các query song song để tối ưu tốc độ (Performance) ===== */
+    const [images, descriptions, comments, itineraries, trips, favorite] =
+      await Promise.all([
+        TourImage.find({ tour_id: tourId }).lean(),
+        Description.find({ tour_id: tourId }).select("title content").lean(),
+        Comment.find({ tour_id: tourId })
+          .populate("user_id", "name avatar")
+          .sort({ createdAt: -1 })
+          .lean(),
+        Itinerary.find({ tour_id: tourId }).sort({ day_number: 1 }).lean(),
+        /* Lọc Trip: Ẩn 'deleted', chỉ lấy 'open' và 'full' */
+        Trip.find({
+          tour_id: tourId,
+          status: { $in: ["open", "full"] }, // 👈 Loại bỏ hoàn toàn 'deleted' và 'closed' (nếu muốn)
+          start_date: { $gte: new Date() }, // 👈 Chỉ lấy những chuyến chưa khởi hành
+        })
+          .sort({ start_date: 1 })
+          .lean(),
+        /* Kiểm tra Favorite */
+        req.user?._id
+          ? Favorite.findOne({ user_id: req.user._id, tour_id: tourId })
+          : null,
+      ]);
 
-    /* ===== Comments ===== */
-    const comments = await Comment.find({
-      tour_id: tour._id,
-    })
-      .populate("user_id", "name avatar")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    /* ===== Itineraries ===== */
-    const itineraries = await Itinerary.find({
-      tour_id: tour._id,
-    })
-      .sort({ day_number: 1 })
-      .lean();
-
+    /* ===== 3. Xử lý Chi tiết hành trình (Itinerary Details) ===== */
     const itineraryIds = itineraries.map((i) => i._id);
-
-    /* ===== Itinerary Details ===== */
     const details = await ItineraryDetail.find({
       itinerary_id: { $in: itineraryIds },
     })
@@ -261,34 +260,28 @@ const getTourBySlug = async (req, res) => {
       .sort({ order: 1 })
       .lean();
 
-    /* ===== Place Images ===== */
     const placeIds = details.map((d) => d.place_id?._id).filter(Boolean);
-
     const placeImages = await PlaceImage.find({
       place_id: { $in: placeIds },
     }).lean();
 
+    // Map ảnh cho địa điểm
     const placeImageMap = {};
     placeImages.forEach((img) => {
-      if (!placeImageMap[img.place_id]) {
-        placeImageMap[img.place_id] = [];
-      }
+      if (!placeImageMap[img.place_id]) placeImageMap[img.place_id] = [];
       placeImageMap[img.place_id].push(img);
     });
 
-    /* ===== Gắn images vào place ===== */
     details.forEach((d) => {
       if (d.place_id) {
         d.place_id.images = placeImageMap[d.place_id._id] || [];
       }
     });
 
-    /* ===== Group details theo itinerary ===== */
+    // Nhóm chi tiết vào từng ngày hành trình
     const detailMap = {};
     details.forEach((d) => {
-      if (!detailMap[d.itinerary_id]) {
-        detailMap[d.itinerary_id] = [];
-      }
+      if (!detailMap[d.itinerary_id]) detailMap[d.itinerary_id] = [];
       detailMap[d.itinerary_id].push(d);
     });
 
@@ -296,26 +289,7 @@ const getTourBySlug = async (req, res) => {
       i.details = detailMap[i._id] || [];
     });
 
-    /* ===== Trips ===== */
-    const trips = await Trip.find({
-      tour_id: tour._id,
-      status: { $in: ["open", "full"] },
-    })
-      .sort({ start_date: 1 })
-      .lean();
-
-    /* ===== Favorite ===== */
-    let isFavorite = false;
-
-    if (req.user?._id) {
-      const favorite = await Favorite.findOne({
-        user_id: req.user._id,
-        tour_id: tour._id,
-      });
-
-      isFavorite = !!favorite;
-    }
-
+    /* ===== 4. Trả về kết quả ===== */
     return res.status(200).json({
       success: true,
       data: {
@@ -323,15 +297,18 @@ const getTourBySlug = async (req, res) => {
         images,
         descriptions,
         itineraries,
-        trips,
+        trips: trips.map((trip) => ({
+          ...trip,
+          available_slots: trip.max_people - (trip.booked_people || 0),
+        })),
         comments,
-        isFavorite,
+        isFavorite: !!favorite,
       },
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Lỗi khi lấy chi tiết tour",
     });
   }
 };
@@ -349,7 +326,13 @@ const updateTour = async (req, res) => {
     }
 
     /* ===== Update fields ===== */
-    const fields = ["name", "status", "hotel_id", "category_id", "start_location"];
+    const fields = [
+      "name",
+      "status",
+      "hotel_id",
+      "category_id",
+      "start_location",
+    ];
 
     fields.forEach((field) => {
       if (req.body[field] !== undefined) {

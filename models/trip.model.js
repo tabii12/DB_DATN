@@ -8,6 +8,7 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ✅ KẾT NỐI VỚI BẢNG SERVICE
     services: [
       {
         service_id: {
@@ -24,6 +25,7 @@ const tripSchema = new mongoose.Schema(
           type: Number,
           default: 1,
         },
+        note: String, // Ví dụ: "Xe đưa đón ngày 1" hoặc "Khách sạn hạng sang"
       },
     ],
 
@@ -66,7 +68,7 @@ const tripSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["open", "closed", "full"],
+      enum: ["open", "closed", "full", "deleted"],
       default: "open",
     },
   },
