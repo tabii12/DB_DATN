@@ -204,7 +204,7 @@ const getTripStatusReport = async (req, res) => {
         select: "name start_location slug",
         populate: {
           path: "images",
-          select: "url",
+          select: "image_url",
         },
       })
       .select("tour_id start_date max_people booked_people status")
