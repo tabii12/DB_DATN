@@ -216,7 +216,7 @@ const getTripStatusReport = async (req, res) => {
       const minPeopleToStart = Math.ceil(maxPeople * 0.3);
       const isRisk = trip.booked_people < minPeopleToStart;
 
-      const tourThumb = trip.tour_id?.images?.[0]?.url || null;
+      const tourThumb = trip.tour_id?.images?.[0]?.image_url || null;
 
       return {
         tripId: trip._id,
