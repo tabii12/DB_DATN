@@ -198,20 +198,16 @@ const getAllBookings = async (req, res) => {
 
 const getTripStatusReport = async (req, res) => {
   try {
-    // Lấy tất cả các Trip kèm theo thông tin các dịch vụ
-    const trips = await Trip.find()
+    const trips = await Trip.find({ booked_people: { $gt: 0 } })
       .select("name start_date max_people booked_people status")
       .sort({ start_date: 1 });
 
-    // Tính toán thêm tỷ lệ lấp đầy và đưa ra cảnh báo nếu cần
     const report = trips.map((trip) => {
-      const occupancyRate = (
-        (trip.booked_people / trip.max_people) *
-        100
-      ).toFixed(2);
+      const maxPeople = trip.max_people || 1;
+      const occupancyRate = ((trip.booked_people / maxPeople) * 100).toFixed(2);
 
-      // Giả sử tour cần ít nhất 30% số chỗ để khởi hành
-      const minPeopleToStart = Math.ceil(trip.max_people * 0.3);
+      // Ngưỡng 30% khởi hành
+      const minPeopleToStart = Math.ceil(maxPeople * 0.3);
       const isRisk = trip.booked_people < minPeopleToStart;
 
       return {
@@ -230,6 +226,7 @@ const getTripStatusReport = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      count: report.length, // Thêm đếm số lượng cho dễ quản lý
       data: report,
     });
   } catch (error) {
