@@ -198,10 +198,16 @@ const getAllBookings = async (req, res) => {
 
 const getTripStatusReport = async (req, res) => {
   try {
-    // Sử dụng .populate("tour") để lấy thông tin từ collection Tour
     const trips = await Trip.find({ booked_people: { $gt: 0 } })
-      .populate("tour", "name image tourCode") // Chọn các field cần lấy của Tour, tránh lấy hết gây nặng data
-      .select("name start_date max_people booked_people status tour")
+      .populate({
+        path: "tour_id",
+        select: "name start_location slug",
+        populate: {
+          path: "images",
+          select: "url",
+        },
+      })
+      .select("tour_id start_date max_people booked_people status")
       .sort({ start_date: 1 });
 
     const report = trips.map((trip) => {
@@ -210,10 +216,16 @@ const getTripStatusReport = async (req, res) => {
       const minPeopleToStart = Math.ceil(maxPeople * 0.3);
       const isRisk = trip.booked_people < minPeopleToStart;
 
+      const tourThumb = trip.tour_id?.images?.[0]?.url || null;
+
       return {
         tripId: trip._id,
-        tripName: trip.name, // Tên của chuyến đi cụ thể (VD: Chuyến tháng 5)
-        tourInfo: trip.tour, // Chứa name, image của Tour tổng
+        tourInfo: {
+          id: trip.tour_id?._id,
+          name: trip.tour_id?.name,
+          image: tourThumb,
+          startLocation: trip.tour_id?.start_location,
+        },
         startDate: trip.start_date,
         capacity: `${trip.booked_people}/${trip.max_people}`,
         occupancyRate: `${occupancyRate}%`,
@@ -227,7 +239,6 @@ const getTripStatusReport = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: report.length,
       data: report,
     });
   } catch (error) {
