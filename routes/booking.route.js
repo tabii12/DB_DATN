@@ -13,6 +13,9 @@ router.post("/", bookingController.createBooking);
 // Lấy danh sách booking của chính user đó
 router.get("/my-bookings", bookingController.getMyBookings);
 
+// Route kiểm tra nhanh việc đã đặt tour hay chưa
+router.get("/check-booked/:tourId", primaryAuth, bookingController.checkUserHasBooked);
+
 router.patch("/detail/:id/status", bookingController.updateBookingStatus);
 
 router.use(isAdmin);

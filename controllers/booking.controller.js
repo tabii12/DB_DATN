@@ -257,12 +257,10 @@ const updateBookingStatus = async (req, res) => {
     // 1️⃣ Chặn đi lùi (Trừ khi là cancelled)
     if (currentStatus !== "cancelled" && newStatus !== "cancelled") {
       if (statusOrder[newStatus] <= statusOrder[currentStatus]) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Không thể quay lại trạng thái trước đó",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Không thể quay lại trạng thái trước đó",
+        });
       }
     }
 
@@ -318,13 +316,34 @@ const updateBookingStatus = async (req, res) => {
     booking.status = newStatus;
     await booking.save();
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: `Trạng thái: ${newStatus}`,
-        data: booking,
-      });
+    return res.status(200).json({
+      success: true,
+      message: `Trạng thái: ${newStatus}`,
+      data: booking,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const checkUserHasBooked = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { tourId } = req.params;
+
+    const hasBooked = await Booking.findOne({
+      user_id: userId,
+      tour_id: tourId,
+      status: "paid",
+    }).select("_id");
+
+    return res.status(200).json({
+      success: true,
+      hasBooked: !!hasBooked, // Trả về true nếu tìm thấy, false nếu không
+      message: hasBooked
+        ? "User đã đặt tour này"
+        : "User chưa đặt hoặc chưa thanh toán",
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -336,4 +355,5 @@ module.exports = {
   getAllBookings,
   getTripStatusReport,
   updateBookingStatus,
+  checkUserHasBooked,
 };
