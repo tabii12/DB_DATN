@@ -4,13 +4,21 @@ const Service = require("../models/service.model");
 
 const createTrip = async (req, res) => {
   try {
-    const { tour_id, start_date, end_date, max_people, services } = req.body;
+    const { tour_id, start_date, end_date, max_people, min_people, services } =
+      req.body;
 
     // 1. Kiểm tra các trường bắt buộc
-    if (!tour_id || !start_date || !end_date || !max_people) {
+    if (!tour_id || !start_date || !end_date || !max_people || !min_people) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc để tạo Trip",
+      });
+    }
+
+    if (Number(min_people) > Number(max_people)) {
+      return res.status(400).json({
+        success: false,
+        message: "Số người tối thiểu không được lớn hơn số người tối đa",
       });
     }
 
@@ -87,6 +95,7 @@ const createTrip = async (req, res) => {
       start_date,
       end_date,
       max_people,
+      min_people,
       services: processedServices,
       base_price: totalBaseCost,
       price: pricePerPerson,
@@ -207,6 +216,7 @@ const updateTripById = async (req, res) => {
       "start_date",
       "end_date",
       "max_people",
+      "min_people",
       "status",
       "services",
     ];
@@ -215,6 +225,13 @@ const updateTripById = async (req, res) => {
         trip[field] = updateData[field];
       }
     });
+
+    if (trip.min_people > trip.max_people) {
+      return res.status(400).json({
+        success: false,
+        message: "Số người tối thiểu không được vượt quá số người tối đa",
+      });
+    }
 
     // 2. Tính toán lại giá
     const isPriceAffected =

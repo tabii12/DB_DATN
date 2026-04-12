@@ -59,6 +59,10 @@ const tripSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    min_people: {
+      type: Number,
+      default: 1,
+    },
 
     booked_people: {
       type: Number,
