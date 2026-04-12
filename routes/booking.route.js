@@ -13,9 +13,6 @@ router.post("/", bookingController.createBooking);
 // Lấy danh sách booking của chính user đó
 router.get("/my-bookings", bookingController.getMyBookings);
 
-// Lấy chi tiết một booking
-router.get("/detail/:id", bookingController.getBookingDetail);
-
 router.patch("/detail/:id/status", bookingController.updateBookingStatus);
 
 router.use(isAdmin);
