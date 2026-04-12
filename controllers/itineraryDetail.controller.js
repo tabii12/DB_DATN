@@ -2,16 +2,33 @@ const ItineraryDetail = require("../models/itineraryDetail.model");
 
 const createItineraryDetail = async (req, res) => {
   try {
+    // 1. Log dữ liệu nhận được từ Frontend để kiểm tra xem có bị thiếu/sai format không
+    console.log(">>> Request Body:", req.body);
+
     const { itinerary_id, place_id, type, title, content, order } = req.body;
 
-    const detail = await ItineraryDetail.create({
+    // 2. Kiểm tra nhanh các trường bắt buộc trước khi gọi Database
+    if (!itinerary_id) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thiếu itinerary_id" });
+    }
+
+    // 3. Xử lý place_id: Nếu là chuỗi rỗng hoặc undefined, hãy xóa nó đi
+    // để tránh lỗi Mongoose CastError (lỗi định dạng ObjectId)
+    const updateData = {
       itinerary_id,
-      place_id,
       type,
       title,
       content,
       order,
-    });
+    };
+
+    if (place_id && place_id.trim() !== "") {
+      updateData.place_id = place_id;
+    }
+
+    const detail = await ItineraryDetail.create(updateData);
 
     return res.status(201).json({
       success: true,
@@ -19,9 +36,15 @@ const createItineraryDetail = async (req, res) => {
       data: detail,
     });
   } catch (error) {
+    // 4. Log toàn bộ Object error ra Console của Server (Terminal)
+    // Đây là nơi bạn sẽ thấy "Lỗi ở đâu" (Dòng bao nhiêu, file nào)
+    console.error("<<< LOG LỖI CHI TIẾT:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined, // Hiện vị trí lỗi nếu đang ở môi trường dev
+      name: error.name, // Trả về tên lỗi (vd: CastError, ValidationError)
     });
   }
 };
