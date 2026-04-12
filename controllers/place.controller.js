@@ -48,6 +48,64 @@ const createPlace = async (req, res) => {
   }
 };
 
+const getAllPlaces = async (req, res) => {
+  try {
+    // 1️⃣ Lấy tất cả places
+    const places = await Place.find().sort({ createdAt: -1 });
+
+    // 2️⃣ Dùng Promise.all để lấy ảnh cho từng place (hoặc dùng aggregate nếu muốn tối ưu hơn)
+    const data = await Promise.all(
+      places.map(async (place) => {
+        const images = await PlaceImage.find({ place_id: place._id });
+        return {
+          ...place.toObject(),
+          images,
+        };
+      }),
+    );
+
+    return res.status(200).json({
+      success: true,
+      total: data.length,
+      data: data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getPlaceDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const place = await Place.findById(id);
+    if (!place) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy địa điểm",
+      });
+    }
+
+    const images = await PlaceImage.find({ place_id: place._id });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...place.toObject(),
+        images,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const updatePlace = async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,6 +222,8 @@ const deletePlace = async (req, res) => {
 
 module.exports = {
   createPlace,
+  getAllPlaces,
+  getPlaceDetail,
   updatePlace,
   deletePlace,
 };
