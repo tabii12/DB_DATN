@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Booking = require("../models/booking.model");
 const Trip = require("../models/trip.model");
-const TourMember = require("../models/tourMember.model");
 
 const createBooking = async (req, res) => {
   const session = await mongoose.startSession();
@@ -29,22 +28,21 @@ const createBooking = async (req, res) => {
     const total_members = adults + children + infants;
     const total_price = grandTotal || total;
 
-    // 1️⃣ Check trip
     const trip = await Trip.findById(trip_id).session(session);
     if (!trip) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "Trip not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy chuyến đi" });
     }
 
-    // 2️⃣ Validate số lượng
-    if (total_members < 1) {
+    if ((trip.booked_people || 0) + total_members > trip.max_people) {
       await session.abortTransaction();
-      return res.status(400).json({
-        message: "Tổng số người phải >= 1",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Tour đã hết chỗ" });
     }
 
-    // 3️⃣ Check slot
     const booked = trip.booked_people || 0;
     if (booked + total_members > trip.max_people) {
       await session.abortTransaction();
@@ -132,67 +130,19 @@ const createBooking = async (req, res) => {
 const getMyBookings = async (req, res) => {
   try {
     const userId = req.user._id;
-
     const bookings = await Booking.find({ user_id: userId })
+      .select(
+        "trip_id tourName departureDate adults children infants total_price status createdAt thumbnail",
+      )
       .populate({
         path: "trip_id",
-        select: "name start_date end_date price",
+        select: "start_date end_date",
       })
       .sort({ createdAt: -1 });
 
-    return res.status(200).json({
-      success: true,
-      data: bookings,
-    });
+    return res.status(200).json({ success: true, data: bookings });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-};
-
-const getBookingDetail = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const bookingId = req.params.id;
-
-    const booking = await Booking.findById(bookingId)
-      .populate({
-        path: "trip_id",
-        select: "name description start_date end_date price",
-      })
-      .populate({
-        path: "members",
-        select: "name age id_card is_owner",
-      });
-
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
-
-    // 2️⃣ Check quyền
-    if (booking.user_id.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: booking,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -202,26 +152,32 @@ const getAllBookings = async (req, res) => {
 
     const filter = {};
 
+    // 1️⃣ Lọc theo trạng thái Booking
     if (status) {
       filter.status = status;
     }
 
+    // 2️⃣ Lọc theo trạng thái thanh toán trong object vnpay
     if (payment_status) {
-      filter["payment.status"] = payment_status;
+      filter["vnpay.status"] = payment_status;
     }
 
     if (trip_id) {
       filter.trip_id = trip_id;
     }
 
+    // 3️⃣ Truy vấn với Nested Populate
     const bookings = await Booking.find(filter)
       .populate({
-        path: "trip_id",
-        select: "name start_date end_date",
+        path: "user_id",
+        select: "name email phone role",
       })
       .populate({
-        path: "user_id",
-        select: "name email",
+        path: "trip_id",
+        populate: {
+          path: "services",
+          model: "Service",
+        },
       })
       .sort({ createdAt: -1 });
 
@@ -231,193 +187,153 @@ const getAllBookings = async (req, res) => {
       data: bookings,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("Admin Get All Bookings Error:", error);
+    return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Lỗi hệ thống khi lấy danh sách booking",
+      error: error.message,
     });
   }
 };
 
-const confirmPayment = async (req, res) => {
+const getTripStatusReport = async (req, res) => {
   try {
-    const adminId = req.user._id; // admin đã đăng nhập
-    const bookingId = req.params.id;
+    // Lấy tất cả các Trip kèm theo thông tin các dịch vụ
+    const trips = await Trip.find()
+      .select("name start_date max_people booked_people status")
+      .sort({ start_date: 1 });
 
-    // 1️⃣ Tìm booking
-    const booking = await Booking.findById(bookingId);
+    // Tính toán thêm tỷ lệ lấp đầy và đưa ra cảnh báo nếu cần
+    const report = trips.map((trip) => {
+      const occupancyRate = (
+        (trip.booked_people / trip.max_people) *
+        100
+      ).toFixed(2);
 
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
+      // Giả sử tour cần ít nhất 30% số chỗ để khởi hành
+      const minPeopleToStart = Math.ceil(trip.max_people * 0.3);
+      const isRisk = trip.booked_people < minPeopleToStart;
 
-    // 2️⃣ Check trạng thái hiện tại
-    if (booking.payment.status === "paid") {
-      return res.status(400).json({
-        success: false,
-        message: "Booking already paid",
-      });
-    }
-
-    // 3️⃣ Update payment + booking status
-    booking.payment.status = "paid";
-    booking.payment.paid_at = new Date();
-    booking.payment.confirmed_by = adminId;
-
-    booking.status = "paid";
-
-    await booking.save();
+      return {
+        tripId: trip._id,
+        name: trip.name,
+        startDate: trip.start_date,
+        capacity: `${trip.booked_people}/${trip.max_people}`,
+        occupancyRate: `${occupancyRate}%`,
+        status: trip.status,
+        shouldStart: !isRisk,
+        note: isRisk
+          ? "Quá ít khách - Cân nhắc hủy/gộp tour"
+          : "Đủ điều kiện khởi hành",
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Payment confirmed successfully",
-      data: booking,
+      data: report,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-const cancelBooking = async (req, res) => {
+const updateBookingStatus = async (req, res) => {
   try {
     const bookingId = req.params.id;
+    const { newStatus } = req.body;
+    const userRole = req.user.role;
     const userId = req.user._id;
 
     const booking = await Booking.findById(bookingId).populate("trip_id");
+    if (!booking)
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy đơn hàng" });
 
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking không tồn tại",
-      });
+    // Trình tự trạng thái: pending (1) -> confirmed (2) -> paid (3)
+    const statusOrder = { pending: 1, confirmed: 2, paid: 3, cancelled: 0 };
+    const currentStatus = booking.status;
+
+    // 1️⃣ Chặn đi lùi (Trừ khi là cancelled)
+    if (currentStatus !== "cancelled" && newStatus !== "cancelled") {
+      if (statusOrder[newStatus] <= statusOrder[currentStatus]) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Không thể quay lại trạng thái trước đó",
+          });
+      }
     }
 
-    // ❗ Chỉ người đặt hoặc admin mới được huỷ
-    if (
-      booking.user_id.toString() !== userId.toString() &&
-      req.user.role !== "admin"
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Bạn không có quyền huỷ booking này",
-      });
-    }
+    // 2️⃣ Xử lý logic HỦY (Cancelled)
+    if (newStatus === "cancelled") {
+      // Kiểm tra quyền: Chỉ chủ đơn hoặc Admin
+      if (
+        booking.user_id.toString() !== userId.toString() &&
+        userRole !== "admin"
+      ) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Bạn không có quyền này" });
+      }
 
-    // ❌ Không cho huỷ nếu đã thanh toán
-    if (booking.payment.status === "paid") {
-      return res.status(400).json({
-        success: false,
-        message: "Booking đã thanh toán, không thể huỷ",
-      });
-    }
+      // Luật 3 ngày: Không cho hủy nếu cách ngày khởi hành < 3 ngày
+      const daysToDeparture =
+        (new Date(booking.departureDate) - new Date()) / (1000 * 60 * 60 * 24);
+      if (daysToDeparture < 3 && userRole !== "admin") {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Tour sắp khởi hành (dưới 3 ngày), vui lòng liên hệ hotline để được hỗ trợ hủy",
+        });
+      }
 
-    // ❌ Không cho huỷ nếu tour đã bắt đầu
-    if (new Date() >= new Date(booking.trip_id.start_date)) {
-      return res.status(400).json({
-        success: false,
-        message: "Tour đã bắt đầu, không thể huỷ",
-      });
-    }
+      // Nếu đã thanh toán: Chỉ Admin mới được xác nhận hủy (để làm thủ tục hoàn tiền bên ngoài)
+      if (currentStatus === "paid" && userRole !== "admin") {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Đơn đã thanh toán thành công, vui lòng gửi yêu cầu hoàn tiền cho chúng tôi",
+        });
+      }
 
-    booking.status = "cancelled";
-
-    // Decrement trip booked_people
-    if (booking.trip_id) {
+      // Hoàn trả slot khi hủy thành công
       await Trip.findByIdAndUpdate(booking.trip_id, {
         $inc: { booked_people: -booking.total_members },
       });
     }
 
+    // 3️⃣ Cập nhật thông tin Admin nếu confirm thanh toán thủ công
+    if (newStatus === "paid" && userRole === "admin") {
+      booking.vnpay = {
+        ...booking.vnpay,
+        status: "paid",
+        method: booking.vnpay?.method || "bank_transfer",
+        confirmed_by: adminId,
+        paid_at: new Date(),
+      };
+    }
+
+    booking.status = newStatus;
     await booking.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Huỷ booking thành công",
-    });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: `Trạng thái: ${newStatus}`,
+        data: booking,
+      });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-};
-
-const updateVNPayPayment = async (req, res) => {
-  try {
-    const vnpTxnRef = req.query.vnp_TxnRef;
-    if (!vnpTxnRef)
-      return res.redirect(
-        "https://pickyourway.vercel.app/checkout/confirmation?status=failed",
-      );
-
-    // vnp_TxnRef format: timestamp_BPID
-    const bookingId = vnpTxnRef.split("_")[1];
-    const booking = await Booking.findById(bookingId);
-
-    if (!booking || booking.payment.status === "paid") {
-      return res.redirect(
-        "https://pickyourway.vercel.app/checkout/confirmation?status=already",
-      );
-    }
-
-    // Parse VNPAY success params
-    booking.payment.method = "vnpay";
-    booking.payment.vnp_Amount = req.query.vnp_Amount;
-    booking.payment.vnp_BankCode = req.query.vnp_BankCode;
-    booking.payment.vnp_BankTranNo = req.query.vnp_BankTranNo;
-    booking.payment.vnp_CardType = req.query.vnp_CardType;
-    booking.payment.vnp_OrderInfo = req.query.vnp_OrderInfo;
-    booking.payment.vnp_PayDate = req.query.vnp_PayDate
-      ? new Date(parseInt(req.query.vnp_PayDate))
-      : new Date();
-    booking.payment.vnp_ResponseCode = req.query.vnp_ResponseCode;
-    booking.payment.vnp_TmnCode = req.query.vnp_TmnCode;
-    booking.payment.vnp_TransactionNo = req.query.vnp_TransactionNo;
-    booking.payment.vnp_TransactionStatus = req.query.vnp_TransactionStatus;
-    booking.payment.vnp_TxnRef = vnpTxnRef;
-
-    // Check success: vnp_ResponseCode='00' & vnp_TransactionStatus='00'
-    if (
-      req.query.vnp_ResponseCode === "00" &&
-      req.query.vnp_TransactionStatus === "00"
-    ) {
-      booking.payment.status = "paid";
-      booking.payment.paid_at = booking.payment.vnp_PayDate;
-      booking.status = "paid";
-      await booking.save();
-      res.redirect(
-        `https://pickyourway.vercel.app/checkout/confirmation?status=success&bookingId=${bookingId}`,
-      );
-    } else {
-      booking.payment.status = "failed";
-      booking.status = "cancelled";
-      await booking.save();
-      res.redirect(
-        `https://pickyourway.vercel.app/checkout/confirmation?status=failed&bookingId=${bookingId}`,
-      );
-    }
-  } catch (error) {
-    console.error("VNPAY callback error:", error);
-    res.redirect(
-      "https://pickyourway.vercel.app/checkout/confirmation?status=error",
-    );
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
   createBooking,
   getMyBookings,
-  getBookingDetail,
   getAllBookings,
-  confirmPayment,
-  cancelBooking,
-  updateVNPayPayment,
+  getTripStatusReport,
+  updateBookingStatus,
 };

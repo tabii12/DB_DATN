@@ -5,18 +5,28 @@ const bookingController = require("../controllers/booking.controller");
 const isAdmin = require("../middlewares/isAdmin.middleware");
 const { primaryAuth } = require("../middlewares/auth.middleware");
 
-// Admin routes
-router.get("/admin/all", primaryAuth, isAdmin, bookingController.getAllBookings);
-router.patch("/admin/:id/confirm-payment", primaryAuth, isAdmin, bookingController.confirmPayment);
+router.use(primaryAuth); // Tất cả các route bên dưới đều cần Login
 
-// VNPAY callback
-router.get("/vnpay/callback", bookingController.updateVNPayPayment);
+// Tạo mới booking
+router.post("/", bookingController.createBooking);
 
-// User routes
-router.post("/", primaryAuth, bookingController.createBooking);
-router.get("/my-bookings", primaryAuth, bookingController.getMyBookings);
+// Lấy danh sách booking của chính user đó
+router.get("/my-bookings", bookingController.getMyBookings);
 
-router.get("/detail/:id", primaryAuth, bookingController.getBookingDetail);
-router.patch("/detail/:id/cancel", primaryAuth, bookingController.cancelBooking);
+// Lấy chi tiết một booking
+router.get("/detail/:id", bookingController.getBookingDetail);
+
+router.patch("/detail/:id/status", bookingController.updateBookingStatus);
+
+router.use(isAdmin);
+
+// Lấy toàn bộ booking hệ thống (kèm thông tin Service)
+router.get("/admin/all", bookingController.getAllBookings);
+
+// Báo cáo tình trạng lấp đầy các Trip (Để admin quyết định khởi hành/hủy)
+router.get("/admin/status-report", bookingController.getTripStatusReport);
+
+// Admin cập nhật trạng thái đơn hàng (Confirm thanh toán, Hủy đơn, xác nhận...)
+router.patch("/admin/:id/status", bookingController.updateBookingStatus);
 
 module.exports = router;

@@ -22,12 +22,6 @@ const tourSchema = new mongoose.Schema(
       default: "active",
     },
 
-    hotel_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Hotel",
-      required: true,
-    },
-
     category_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
@@ -46,9 +40,9 @@ const tourSchema = new mongoose.Schema(
 );
 
 tourSchema.virtual("images", {
-  ref: "TourImage", // Model của bảng ảnh
-  localField: "_id", // _id của bảng Tour
-  foreignField: "tour_id", // Trường tour_id bên bảng TourImage
+  ref: "TourImage",
+  localField: "_id",
+  foreignField: "tour_id",
 });
 
 tourSchema.set("toObject", { virtuals: true });

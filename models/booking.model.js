@@ -23,17 +23,6 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
     },
 
-    hotelName: {
-      type: String,
-      trim: true,
-    },
-
-    city: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
     thumbnail: {
       type: String,
       trim: true,
@@ -74,8 +63,9 @@ const bookingSchema = new mongoose.Schema(
       min: 0,
     },
 
-    total: {
+    total_price: {
       type: Number,
+      required: true,
       min: 0,
     },
 
@@ -125,7 +115,7 @@ const bookingSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled"],
+      enum: ["pending", "confirmed", "paid", "cancelled"],
       default: "pending",
     },
 
@@ -142,6 +132,7 @@ const bookingSchema = new mongoose.Schema(
 
 bookingSchema.index({ user_id: 1 });
 bookingSchema.index({ trip_id: 1 });
+bookingSchema.index({ orderId: 1 });
 
 bookingSchema.set("toJSON", { virtuals: true });
 bookingSchema.set("toObject", { virtuals: true });

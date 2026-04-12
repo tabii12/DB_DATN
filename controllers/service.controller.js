@@ -37,7 +37,7 @@ const createService = async (req, res) => {
 // 2. GET ALL SERVICES (Có hỗ trợ lọc theo type)
 const getAllServices = async (req, res) => {
   try {
-    const { type } = req.query; // Ví dụ: ?type=hotel
+    const { type } = req.query;
     const filter = type ? { type, status: "active" } : { status: "active" };
 
     const services = await Service.find(filter).sort({ createdAt: -1 }).lean();

@@ -10,29 +10,24 @@ const Favorite = require("../models/favorite.model");
 
 const cloudinary = require("../utils/cloudinary");
 const { uploadMultipleImages } = require("../utils/cloudinaryUpload");
-
 const slugify = require("slugify");
 
 const createTour = async (req, res) => {
   try {
-    const { name, hotel_id, category_id, start_location } = req.body;
+    const { name, category_id, start_location } = req.body;
 
-    if (!name || !hotel_id || !category_id || !start_location) {
+    if (!name || !category_id || !start_location) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu dữ liệu bắt buộc",
+        message: "Thiếu dữ liệu bắt buộc (Tên, Category, Điểm khởi hành)",
       });
     }
 
-    const slug = slugify(name, {
-      lower: true,
-      strict: true,
-    });
+    const slug = slugify(name, { lower: true, strict: true });
 
     const newTour = await Tour.create({
       name,
       slug,
-      hotel_id,
       category_id,
       start_location,
     });
@@ -44,10 +39,7 @@ const createTour = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -100,108 +92,63 @@ const uploadTourImages = async (req, res) => {
 const getAllTours = async (req, res) => {
   try {
     const tours = await Tour.find({ status: "active" })
-      .populate("category_id")
-      .populate("hotel_id")
+      .populate("category_id", "name")
       .sort({ createdAt: -1 })
       .lean();
 
     const tourIds = tours.map((t) => t._id);
 
-    /* ===== Images ===== */
-    const images = await TourImage.find({
-      tour_id: { $in: tourIds },
-    }).lean();
-
-    const imageMap = {};
-    images.forEach((img) => {
-      if (!imageMap[img.tour_id]) imageMap[img.tour_id] = [];
-      imageMap[img.tour_id].push(img);
-    });
-
-    /* ===== Descriptions ===== */
-    const descriptions = await Description.find({
-      tour_id: { $in: tourIds },
-    }).lean();
-
-    const descriptionMap = {};
-    descriptions.forEach((desc) => {
-      if (!descriptionMap[desc.tour_id]) descriptionMap[desc.tour_id] = [];
-      descriptionMap[desc.tour_id].push({
-        title: desc.title,
-        content: desc.content,
-      });
-    });
+    const [images, descriptions] = await Promise.all([
+      TourImage.find({ tour_id: { $in: tourIds } }).lean(),
+      Description.find({ tour_id: { $in: tourIds } }).lean(),
+    ]);
 
     const result = tours.map((tour) => ({
       ...tour,
-      images: imageMap[tour._id] || [],
-      descriptions: descriptionMap[tour._id] || [],
+      images: images.filter(
+        (img) => img.tour_id.toString() === tour._id.toString(),
+      ),
+      descriptions: descriptions.filter(
+        (desc) => desc.tour_id.toString() === tour._id.toString(),
+      ),
     }));
 
-    return res.status(200).json({
-      success: true,
-      count: result.length,
-      data: result,
-    });
+    return res
+      .status(200)
+      .json({ success: true, count: result.length, data: result });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const getAllToursAdmin = async (req, res) => {
   try {
     const tours = await Tour.find()
-      .populate("category_id")
-      .populate("hotel_id")
+      .populate("category_id", "name")
       .sort({ createdAt: -1 })
       .lean();
 
     const tourIds = tours.map((t) => t._id);
-
-    /* ===== Images ===== */
-    const images = await TourImage.find({
-      tour_id: { $in: tourIds },
-    }).lean();
-
-    const imageMap = {};
-    images.forEach((img) => {
-      if (!imageMap[img.tour_id]) imageMap[img.tour_id] = [];
-      imageMap[img.tour_id].push(img);
-    });
-
-    /* ===== Descriptions ===== */
-    const descriptions = await Description.find({
-      tour_id: { $in: tourIds },
-    }).lean();
-
-    const descriptionMap = {};
-    descriptions.forEach((desc) => {
-      if (!descriptionMap[desc.tour_id]) descriptionMap[desc.tour_id] = [];
-      descriptionMap[desc.tour_id].push({
-        title: desc.title,
-        content: desc.content,
-      });
-    });
+    const [images, descriptions] = await Promise.all([
+      TourImage.find({ tour_id: { $in: tourIds } }).lean(),
+      Description.find({ tour_id: { $in: tourIds } }).lean(),
+    ]);
 
     const result = tours.map((tour) => ({
       ...tour,
-      images: imageMap[tour._id] || [],
-      descriptions: descriptionMap[tour._id] || [],
+      images: images.filter(
+        (img) => img.tour_id.toString() === tour._id.toString(),
+      ),
+      descriptions: descriptions.filter(
+        (desc) => desc.tour_id.toString() === tour._id.toString(),
+      ),
     }));
 
-    return res.status(200).json({
-      success: true,
-      count: result.length,
-      data: result,
-    });
+    return res
+      .status(200)
+      .json({ success: true, count: result.length, data: result });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -209,25 +156,18 @@ const getTourBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    /* ===== 1. Tour (Chỉ lấy tour đang active) ===== */
-    const tour = await Tour.findOne({
-      slug,
-      status: "active", // Đảm bảo không hiện tour đã ẩn
-    })
-      .populate("category_id", "name") // Chỉ lấy tên category
-      .populate("hotel_id")
+    const tour = await Tour.findOne({ slug, status: "active" })
+      .populate("category_id", "name")
       .lean();
 
     if (!tour) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy tour hoặc tour đã bị tạm ẩn",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy tour" });
     }
 
     const tourId = tour._id;
 
-    /* ===== 2. Thực hiện các query song song để tối ưu tốc độ (Performance) ===== */
     const [images, descriptions, comments, itineraries, trips, favorite] =
       await Promise.all([
         TourImage.find({ tour_id: tourId }).lean(),
@@ -237,21 +177,18 @@ const getTourBySlug = async (req, res) => {
           .sort({ createdAt: -1 })
           .lean(),
         Itinerary.find({ tour_id: tourId }).sort({ day_number: 1 }).lean(),
-        /* Lọc Trip: Ẩn 'deleted', chỉ lấy 'open' và 'full' */
         Trip.find({
           tour_id: tourId,
-          status: { $in: ["open", "full"] }, // 👈 Loại bỏ hoàn toàn 'deleted' và 'closed' (nếu muốn)
-          start_date: { $gte: new Date() }, // 👈 Chỉ lấy những chuyến chưa khởi hành
+          status: { $in: ["open", "full"] },
+          start_date: { $gte: new Date() },
         })
           .sort({ start_date: 1 })
           .lean(),
-        /* Kiểm tra Favorite */
         req.user?._id
           ? Favorite.findOne({ user_id: req.user._id, tour_id: tourId })
           : null,
       ]);
 
-    /* ===== 3. Xử lý Chi tiết hành trình (Itinerary Details) ===== */
     const itineraryIds = itineraries.map((i) => i._id);
     const details = await ItineraryDetail.find({
       itinerary_id: { $in: itineraryIds },
@@ -265,7 +202,6 @@ const getTourBySlug = async (req, res) => {
       place_id: { $in: placeIds },
     }).lean();
 
-    // Map ảnh cho địa điểm
     const placeImageMap = {};
     placeImages.forEach((img) => {
       if (!placeImageMap[img.place_id]) placeImageMap[img.place_id] = [];
@@ -273,12 +209,9 @@ const getTourBySlug = async (req, res) => {
     });
 
     details.forEach((d) => {
-      if (d.place_id) {
-        d.place_id.images = placeImageMap[d.place_id._id] || [];
-      }
+      if (d.place_id) d.place_id.images = placeImageMap[d.place_id._id] || [];
     });
 
-    // Nhóm chi tiết vào từng ngày hành trình
     const detailMap = {};
     details.forEach((d) => {
       if (!detailMap[d.itinerary_id]) detailMap[d.itinerary_id] = [];
@@ -289,7 +222,6 @@ const getTourBySlug = async (req, res) => {
       i.details = detailMap[i._id] || [];
     });
 
-    /* ===== 4. Trả về kết quả ===== */
     return res.status(200).json({
       success: true,
       data: {
@@ -306,72 +238,48 @@ const getTourBySlug = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Lỗi khi lấy chi tiết tour",
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const updateTour = async (req, res) => {
   try {
     const { slug } = req.params;
-
     const tour = await Tour.findOne({ slug });
-    if (!tour) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy tour",
-      });
-    }
 
-    /* ===== Update fields ===== */
-    const fields = [
-      "name",
-      "status",
-      "hotel_id",
-      "category_id",
-      "start_location",
-    ];
+    if (!tour)
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy tour" });
 
+    const fields = ["name", "status", "category_id", "start_location"];
     fields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        tour[field] = req.body[field];
-      }
+      if (req.body[field] !== undefined) tour[field] = req.body[field];
     });
 
-    /* ===== Tự động cập nhật slug theo name ===== */
     if (req.body.name) {
       tour.slug = slugify(req.body.name, { lower: true, strict: true });
     }
 
     await tour.save();
 
-    /* ===== Upload new images ===== */
     if (req.files?.length) {
       const uploadedImages = await uploadMultipleImages(
         req.files,
         "pick_your_way/tours",
       );
-
       const images = uploadedImages.map((img) => ({
         tour_id: tour._id,
         ...img,
       }));
-
       await TourImage.insertMany(images);
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Cập nhật tour thành công",
-      data: tour,
-    });
+    return res
+      .status(200)
+      .json({ success: true, message: "Cập nhật tour thành công", data: tour });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

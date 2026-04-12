@@ -67,7 +67,6 @@ const getMyFavorites = async (req, res) => {
       _id: { $in: tourIds },
     })
       .populate("category_id")
-      .populate("hotel_id")
       .lean();
 
     return res.json({

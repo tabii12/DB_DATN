@@ -8,7 +8,6 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 
 var userRouter = require("./routes/user.route");
-var hotelRouter = require("./routes/hotel.route");
 var tourRouter = require("./routes/tour.route");
 var itineraryRoutes = require("./routes/itinerary.route");
 var itineraryDetailRoutes = require("./routes/itineraryDetail.routes");
@@ -48,7 +47,6 @@ app.use(cors({
 }));
 
 app.use("/api/users", userRouter);
-app.use("/api/hotels", hotelRouter);
 app.use("/api/tours", tourRouter);
 app.use("/api/itineraries", itineraryRoutes);
 app.use("/api/itinerary-details", itineraryDetailRoutes);
