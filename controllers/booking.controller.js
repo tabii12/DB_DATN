@@ -242,7 +242,7 @@ const updateBookingStatus = async (req, res) => {
     const bookingId = req.params.id;
     const { newStatus } = req.body;
     const userRole = req.user.role;
-    const userId = req.user._id;
+    const userId = req.user._id; // Đây chính là ID của người đang thực hiện request
 
     const booking = await Booking.findById(bookingId).populate("trip_id");
     if (!booking)
@@ -308,7 +308,7 @@ const updateBookingStatus = async (req, res) => {
         ...booking.vnpay,
         status: "paid",
         method: booking.vnpay?.method || "bank_transfer",
-        confirmed_by: adminId,
+        confirmed_by: userId, // ✅ Đã sửa: dùng userId của admin thực hiện
         paid_at: new Date(),
       };
     }
@@ -318,10 +318,11 @@ const updateBookingStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Trạng thái: ${newStatus}`,
+      message: `Cập nhật trạng thái thành: ${newStatus}`,
       data: booking,
     });
   } catch (error) {
+    // Trả về error.message để bạn dễ debug trên giao diện
     return res.status(500).json({ success: false, message: error.message });
   }
 };
