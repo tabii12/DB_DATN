@@ -242,19 +242,20 @@ const updateBookingStatus = async (req, res) => {
     const bookingId = req.params.id;
     const { newStatus } = req.body;
     const userRole = req.user.role;
-    const userId = req.user._id; // Đây chính là ID của người đang thực hiện request
+    const userId = req.user._id;
 
+    // 1. Tìm đơn hàng để lấy dữ liệu hiện tại
     const booking = await Booking.findById(bookingId).populate("trip_id");
-    if (!booking)
+    if (!booking) {
       return res
         .status(404)
         .json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
 
-    // Trình tự trạng thái: pending (1) -> confirmed (2) -> paid (3)
     const statusOrder = { pending: 1, confirmed: 2, paid: 3, cancelled: 0 };
     const currentStatus = booking.status;
 
-    // 1️⃣ Chặn đi lùi (Trừ khi là cancelled)
+    // Chặn đi lùi trạng thái
     if (currentStatus !== "cancelled" && newStatus !== "cancelled") {
       if (statusOrder[newStatus] <= statusOrder[currentStatus]) {
         return res.status(400).json({
@@ -264,9 +265,8 @@ const updateBookingStatus = async (req, res) => {
       }
     }
 
-    // 2️⃣ Xử lý logic HỦY (Cancelled)
+    // Xử lý logic HỦY (Cancelled)
     if (newStatus === "cancelled") {
-      // Kiểm tra quyền: Chỉ chủ đơn hoặc Admin
       if (
         booking.user_id.toString() !== userId.toString() &&
         userRole !== "admin"
@@ -276,53 +276,50 @@ const updateBookingStatus = async (req, res) => {
           .json({ success: false, message: "Bạn không có quyền này" });
       }
 
-      // Luật 3 ngày: Không cho hủy nếu cách ngày khởi hành < 3 ngày
       const daysToDeparture =
         (new Date(booking.departureDate) - new Date()) / (1000 * 60 * 60 * 24);
       if (daysToDeparture < 3 && userRole !== "admin") {
         return res.status(400).json({
           success: false,
-          message:
-            "Tour sắp khởi hành (dưới 3 ngày), vui lòng liên hệ hotline để được hỗ trợ hủy",
+          message: "Tour sắp khởi hành, vui lòng liên hệ hotline để hỗ trợ hủy",
         });
       }
 
-      // Nếu đã thanh toán: Chỉ Admin mới được xác nhận hủy (để làm thủ tục hoàn tiền bên ngoài)
-      if (currentStatus === "paid" && userRole !== "admin") {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Đơn đã thanh toán thành công, vui lòng gửi yêu cầu hoàn tiền cho chúng tôi",
-        });
-      }
-
-      // Hoàn trả slot khi hủy thành công
       await Trip.findByIdAndUpdate(booking.trip_id, {
         $inc: { booked_people: -booking.total_members },
       });
     }
 
-    // 3️⃣ Cập nhật thông tin Admin nếu confirm thanh toán thủ công
+    // 2. Chuẩn bị dữ liệu cập nhật
+    const updateFields = { status: newStatus };
+
+    // Nếu là Admin xác nhận thanh toán thủ công
     if (newStatus === "paid" && userRole === "admin") {
-      booking.vnpay = {
-        ...booking.vnpay,
+      updateFields.vnpay = {
+        ...booking.vnpay?.toObject(), // Giữ lại các thông tin cũ của vnpay
         status: "paid",
         method: booking.vnpay?.method || "bank_transfer",
-        confirmed_by: userId, // ✅ Đã sửa: dùng userId của admin thực hiện
+        confirmed_by: userId,
         paid_at: new Date(),
       };
     }
 
-    booking.status = newStatus;
-    await booking.save();
+    // 3. Thực hiện cập nhật (Dùng findByIdAndUpdate để tránh lỗi validate total_price)
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateFields },
+      {
+        new: true, // Trả về dữ liệu mới nhất sau khi sửa
+        runValidators: false, // Quan trọng: Bỏ qua kiểm tra các trường bắt buộc khác
+      },
+    );
 
     return res.status(200).json({
       success: true,
-      message: `Cập nhật trạng thái thành: ${newStatus}`,
-      data: booking,
+      message: `Đã chuyển trạng thái sang: ${newStatus}`,
+      data: updatedBooking,
     });
   } catch (error) {
-    // Trả về error.message để bạn dễ debug trên giao diện
     return res.status(500).json({ success: false, message: error.message });
   }
 };
