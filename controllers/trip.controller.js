@@ -4,25 +4,18 @@ const Service = require("../models/service.model");
 
 const createTrip = async (req, res) => {
   try {
-    const { tour_id, start_date, end_date, max_people, min_people, services } =
+    const { tour_id, start_date, max_people, min_people, services } =
       req.body;
 
     // 1. Kiểm tra các trường bắt buộc
-    if (!tour_id || !start_date || !end_date || !max_people || !min_people) {
+    if (!tour_id || !start_date || !max_people || !min_people) {
       return res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc để tạo Trip",
       });
     }
 
-    if (Number(min_people) > Number(max_people)) {
-      return res.status(400).json({
-        success: false,
-        message: "Số người tối thiểu không được lớn hơn số người tối đa",
-      });
-    }
-
-    // 2. Kiểm tra Tour có tồn tại và đang active không
+    // 2. Kiểm tra Tour có tồn tại và lấy duration
     const tour = await Tour.findOne({ _id: tour_id, status: "active" });
     if (!tour) {
       return res.status(404).json({
@@ -31,19 +24,46 @@ const createTrip = async (req, res) => {
       });
     }
 
-    // 3. Tính toán thời gian (Nights & Days)
-    const start = new Date(start_date);
-    const end = new Date(end_date);
-    if (end <= start) {
+    if (!tour.duration || tour.duration < 1) {
       return res.status(400).json({
         success: false,
-        message: "Ngày kết thúc phải sau ngày bắt đầu",
+        message:
+          "Tour này chưa thiết lập thời lượng (duration) để tính ngày kết thúc",
       });
     }
-    const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const days = nights + 1;
 
-    // 4. Xử lý logic Services và tính toán Base Price
+    // 3. Validate ngày bắt đầu (Phải sau ít nhất 3 ngày kể từ hôm nay)
+    const start = new Date(start_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Đưa về 0h để so sánh ngày
+
+    const minStartDate = new Date(today);
+    minStartDate.setDate(today.getDate() + 3);
+
+    if (start < minStartDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Ngày khởi hành phải sau ít nhất 3 ngày kể từ ngày hôm nay",
+      });
+    }
+
+    // 4. Tự động tính toán end_date dựa trên duration của Tour
+    // Ví dụ: Tour 3 ngày (Day 1, 2, 3). Nếu bắt đầu 01/01 thì kết thúc là 03/01
+    const end = new Date(start);
+    end.setDate(start.getDate() + (tour.duration - 1));
+
+    // Tính số đêm và số ngày để phục vụ tính tiền Service
+    const nights = tour.duration - 1;
+    const days = tour.duration;
+
+    if (Number(min_people) > Number(max_people)) {
+      return res.status(400).json({
+        success: false,
+        message: "Số người tối thiểu không được lớn hơn số người tối đa",
+      });
+    }
+
+    // 5. Xử lý logic Services và tính toán Base Price
     let totalBaseCost = 0;
     const processedServices = [];
 
@@ -79,21 +99,20 @@ const createTrip = async (req, res) => {
           service_id: item.service_id,
           unit_price: unitPrice,
           quantity: item.quantity || 1,
-          note: serviceData.serviceName, // Lưu tên dịch vụ vào note để dễ xem lại
+          note: serviceData.serviceName,
         });
       }
     }
 
-    // 5. Tính giá bán cuối cùng (Lợi nhuận 20% và làm tròn đẹp)
-    // Ví dụ: 1.250.300 -> 1.260.000 -> 1.259.000 (giá kiểu .999 cho chuyên nghiệp)
+    // 6. Tính giá bán cuối cùng (Lợi nhuận 20% và làm tròn)
     const rawPrice = (totalBaseCost * 1.2) / max_people;
     const pricePerPerson = Math.ceil(rawPrice / 10000) * 10000 - 1000;
 
-    // 6. Lưu vào Database
+    // 7. Lưu vào Database
     const trip = await Trip.create({
       tour_id,
-      start_date,
-      end_date,
+      start_date: start,
+      end_date: end,
       max_people,
       min_people,
       services: processedServices,
@@ -101,16 +120,16 @@ const createTrip = async (req, res) => {
       price: pricePerPerson,
     });
 
-    // 7. Trả về kết quả thành công
     return res.status(201).json({
       success: true,
       message: "Tạo chuyến đi (Trip) thành công",
       data: trip,
-      breakdown: {
-        total_days: days,
-        total_nights: nights,
+      summary: {
+        duration: `${days} ngày ${nights} đêm`,
+        start_date: start.toDateString(),
+        end_date: end.toDateString(),
         total_base_cost: totalBaseCost,
-        suggested_price: pricePerPerson,
+        price_per_person: pricePerPerson,
       },
     });
   } catch (error) {

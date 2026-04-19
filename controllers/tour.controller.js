@@ -14,12 +14,13 @@ const slugify = require("slugify");
 
 const createTour = async (req, res) => {
   try {
-    const { name, category_id, start_location } = req.body;
+    const { name, category_id, start_location, duration } = req.body;
 
-    if (!name || !category_id || !start_location) {
+    if (!name || !category_id || !start_location || !duration) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu dữ liệu bắt buộc (Tên, Category, Điểm khởi hành)",
+        message:
+          "Thiếu dữ liệu bắt buộc",
       });
     }
 
@@ -30,6 +31,7 @@ const createTour = async (req, res) => {
       slug,
       category_id,
       start_location,
+      duration,
     });
 
     return res.status(201).json({
@@ -173,7 +175,7 @@ const getTourBySlug = async (req, res) => {
         TourImage.find({ tour_id: tourId }).lean(),
         Description.find({ tour_id: tourId }).select("title content").lean(),
         Comment.find({ tour_id: tourId })
-          .populate("user_id", "name avatar")
+          .populate("user_id", "name")
           .sort({ createdAt: -1 })
           .lean(),
         Itinerary.find({ tour_id: tourId }).sort({ day_number: 1 }).lean(),
@@ -252,7 +254,13 @@ const updateTour = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Không tìm thấy tour" });
 
-    const fields = ["name", "status", "category_id", "start_location"];
+    const fields = [
+      "name",
+      "status",
+      "category_id",
+      "start_location",
+      "duration",
+    ];
     fields.forEach((field) => {
       if (req.body[field] !== undefined) tour[field] = req.body[field];
     });
