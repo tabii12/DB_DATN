@@ -122,7 +122,20 @@ const getAllTours = async (req, res) => {
           as: "descriptions",
         },
       },
-
+      {
+        $lookup: {
+          from: "categories", // Tên collection của bảng categories
+          localField: "category_id",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true, // Tránh mất tour nếu category bị xóa nhầm
+        },
+      },
       // 2. Xử lý logic Trip (Auto-closed & Filter deleted)
       {
         $addFields: {
