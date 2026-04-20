@@ -362,52 +362,43 @@ const updateTourStatus = async (req, res) => {
 
 const tourIsCommingSoon = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-
-    // 1. Tạo bộ lọc ngày cho Trip
-    const dateFilter = {};
-    if (startDate) dateFilter.$gte = new Date(startDate);
-    if (endDate) dateFilter.$lte = new Date(endDate);
-
     const results = await Trip.aggregate([
       {
-        // 2. Lọc các Trip nằm trong khoảng ngày mong muốn
+        // 1. Lấy tất cả Trip trừ những cái đã xóa
         $match: {
-          start_date: dateFilter,
           status: { $ne: "deleted" },
         },
       },
       {
-        // 3. Sắp xếp tất cả các Trip theo ngày bắt đầu tăng dần (gần nhất lên trước)
+        // 2. Sắp xếp toàn bộ Trip theo ngày bắt đầu tăng dần (gần nhất lên trước)
         $sort: { start_date: 1 },
       },
       {
-        // 4. Nhóm các Trip lại theo Tour ID
+        // 3. Gom nhóm theo Tour
         $group: {
           _id: "$tour_id",
-          trips: { $push: "$$ROOT" }, // Đẩy toàn bộ thông tin trip vào mảng
-          firstDeparture: { $min: "$start_date" }, // Lấy ngày sớm nhất của tour đó để sort
+          trips: { $push: "$$ROOT" }, // Đẩy danh sách trip vào tour tương ứng
+          firstDeparture: { $first: "$start_date" }, // Lấy ngày của trip sớm nhất để tí nữa sort Tour
         },
       },
       {
-        // 5. Kết hợp (Join) với bảng Tour để lấy thông tin chi tiết của Tour
+        // 4. Lấy thông tin chi tiết của Tour
         $lookup: {
-          from: "tours", // Tên collection trong DB thường là số nhiều
+          from: "tours",
           localField: "_id",
           foreignField: "_id",
           as: "tourDetails",
         },
       },
       {
-        // 6. Vì lookup trả về mảng, ta bóc tách phần tử đầu tiên
         $unwind: "$tourDetails",
       },
       {
-        // 7. Sắp xếp lại danh sách Tour: Tour nào có Trip khởi hành sớm hơn sẽ đứng trước
+        // 5. Sắp xếp các Tour: Tour nào có Trip diễn ra sớm nhất sẽ đứng đầu danh sách
         $sort: { firstDeparture: 1 },
       },
       {
-        // 8. Làm đẹp dữ liệu trả về
+        // 6. Định dạng lại đầu ra
         $project: {
           _id: 0,
           tour: "$tourDetails",
@@ -418,6 +409,7 @@ const tourIsCommingSoon = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      count: results.length,
       data: results,
     });
   } catch (error) {
