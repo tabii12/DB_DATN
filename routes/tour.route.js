@@ -18,7 +18,7 @@ router.get("/admin", tourController.getAllToursAdmin);
 
 router.get("/detail/:slug", optionalAuth, tourController.getTourBySlug);
 
-router.get("/filter-by-date", tourController.tourIsCommingSoon);
+router.get("/tour-is-comming-soon", tourController.tourIsCommingSoon);
 
 router.put("/update/:slug", tourController.updateTour);
 
