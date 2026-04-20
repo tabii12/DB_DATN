@@ -95,12 +95,11 @@ const getAllTours = async (req, res) => {
     const now = new Date();
 
     const result = await Tour.aggregate([
+      // 1. Chỉ lấy Tour đang hoạt động
+      { $match: { status: "active" } },
+
+      // 2. Lấy Trips (Collection name: "trips")
       {
-        // 1. Chỉ lấy Tour đang hoạt động
-        $match: { status: "active" },
-      },
-      {
-        // 2. Kết nối với bảng Trip (trips là tên collection)
         $lookup: {
           from: "trips",
           localField: "_id",
@@ -108,9 +107,29 @@ const getAllTours = async (req, res) => {
           as: "trips",
         },
       },
+
+      // 3. Lấy Images (CHỈNH SỬA: từ "tourimages" thành "tour_images")
       {
-        // 3. Xử lý Logic: Tự động đổi status Trip thành 'closed' nếu quá hạn khởi hành
-        // Và loại bỏ những trip đã bị xóa (deleted)
+        $lookup: {
+          from: "tour_images",
+          localField: "_id",
+          foreignField: "tour_id",
+          as: "images",
+        },
+      },
+
+      // 4. Lấy Descriptions (Collection name: "descriptions")
+      {
+        $lookup: {
+          from: "descriptions",
+          localField: "_id",
+          foreignField: "tour_id",
+          as: "descriptions",
+        },
+      },
+
+      // 5. Xử lý Logic: Tự động đóng (closed) Trip quá hạn & lọc Trip đã xóa
+      {
         $addFields: {
           trips: {
             $map: {
@@ -128,7 +147,7 @@ const getAllTours = async (req, res) => {
                   {
                     status: {
                       $cond: {
-                        if: { $lt: ["$$trip.start_date", now] }, // Nếu ngày bắt đầu < hiện tại
+                        if: { $lt: ["$$trip.start_date", now] },
                         then: "closed",
                         else: "$$trip.status",
                       },
@@ -140,9 +159,9 @@ const getAllTours = async (req, res) => {
           },
         },
       },
+
+      // 6. Tìm ngày khởi hành tương lai gần nhất để sắp xếp Tour
       {
-        // 4. Lấy ngày khởi hành sớm nhất trong tương lai để làm mốc sắp xếp Tour
-        // (Nếu không có trip nào trong tương lai, dùng ngày xa tít tắp để nó xuống cuối)
         $addFields: {
           earliestTripDate: {
             $min: {
@@ -155,31 +174,13 @@ const getAllTours = async (req, res) => {
           },
         },
       },
+
+      // 7. Sắp xếp: Tour có trip sắp diễn ra lên đầu, tour cũ xuống dưới
       {
-        // 5. Kết nối lấy Ảnh, Mô tả và Category (giống hàm cũ của bạn)
-        $lookup: {
-          from: "tourimages",
-          localField: "_id",
-          foreignField: "tour_id",
-          as: "images",
+        $sort: {
+          earliestTripDate: 1, // Sắp xếp theo ngày gần nhất
+          createdAt: -1, // Ưu tiên tour mới tạo nếu không có trip
         },
-      },
-      {
-        $lookup: {
-          from: "descriptions",
-          localField: "_id",
-          foreignField: "tour_id",
-          as: "descriptions",
-        },
-      },
-      {
-        // 6. Sắp xếp: Tour có trip gần nhất sẽ lên đầu.
-        // Tour không có trip tương lai (earliestTripDate null) sẽ xuống cuối.
-        $sort: { earliestTripDate: 1, createdAt: -1 },
-      },
-      {
-        // 7. Loại bỏ field phụ phục vụ sort
-        $project: { earliestTripDate: 0 },
       },
     ]);
 
