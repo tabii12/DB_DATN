@@ -95,10 +95,9 @@ const getAllTours = async (req, res) => {
     const now = new Date();
 
     const result = await Tour.aggregate([
-      // 1. Chỉ lấy Tour đang hoạt động
       { $match: { status: "active" } },
 
-      // 2. Lấy Trips (Collection name: "trips")
+      // 1. Lookup lấy các bảng liên quan
       {
         $lookup: {
           from: "trips",
@@ -107,8 +106,6 @@ const getAllTours = async (req, res) => {
           as: "trips",
         },
       },
-
-      // 3. Lấy Images (CHỈNH SỬA: từ "tourimages" thành "tour_images")
       {
         $lookup: {
           from: "tour_images",
@@ -117,8 +114,6 @@ const getAllTours = async (req, res) => {
           as: "images",
         },
       },
-
-      // 4. Lấy Descriptions (Collection name: "descriptions")
       {
         $lookup: {
           from: "descriptions",
@@ -128,7 +123,7 @@ const getAllTours = async (req, res) => {
         },
       },
 
-      // 5. Xử lý Logic: Tự động đóng (closed) Trip quá hạn & lọc Trip đã xóa
+      // 2. Xử lý logic Trip (Auto-closed & Filter deleted)
       {
         $addFields: {
           trips: {
@@ -160,7 +155,16 @@ const getAllTours = async (req, res) => {
         },
       },
 
-      // 6. Tìm ngày khởi hành tương lai gần nhất để sắp xếp Tour
+      // 3. MỚI: Sắp xếp lại các Trip bên trong mảng trips (ngày gần nhất lên đầu mảng)
+      {
+        $addFields: {
+          trips: {
+            $sortArray: { input: "$trips", sortBy: { start_date: 1 } },
+          },
+        },
+      },
+
+      // 4. Tính ngày khởi hành tương lai gần nhất để Sort thứ tự các Tour
       {
         $addFields: {
           earliestTripDate: {
@@ -175,11 +179,11 @@ const getAllTours = async (req, res) => {
         },
       },
 
-      // 7. Sắp xếp: Tour có trip sắp diễn ra lên đầu, tour cũ xuống dưới
+      // 5. Sắp xếp thứ tự hiển thị giữa các Tour
       {
         $sort: {
-          earliestTripDate: 1, // Sắp xếp theo ngày gần nhất
-          createdAt: -1, // Ưu tiên tour mới tạo nếu không có trip
+          earliestTripDate: 1,
+          createdAt: -1,
         },
       },
     ]);
