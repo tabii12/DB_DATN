@@ -92,31 +92,102 @@ const uploadTourImages = async (req, res) => {
 
 const getAllTours = async (req, res) => {
   try {
-    const tours = await Tour.find({ status: "active" })
-      .populate("category_id", "name")
-      .sort({ createdAt: -1 })
-      .lean();
+    const now = new Date();
 
-    const tourIds = tours.map((t) => t._id);
-
-    const [images, descriptions] = await Promise.all([
-      TourImage.find({ tour_id: { $in: tourIds } }).lean(),
-      Description.find({ tour_id: { $in: tourIds } }).lean(),
+    const result = await Tour.aggregate([
+      {
+        // 1. Chỉ lấy Tour đang hoạt động
+        $match: { status: "active" },
+      },
+      {
+        // 2. Kết nối với bảng Trip (trips là tên collection)
+        $lookup: {
+          from: "trips",
+          localField: "_id",
+          foreignField: "tour_id",
+          as: "trips",
+        },
+      },
+      {
+        // 3. Xử lý Logic: Tự động đổi status Trip thành 'closed' nếu quá hạn khởi hành
+        // Và loại bỏ những trip đã bị xóa (deleted)
+        $addFields: {
+          trips: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$trips",
+                  as: "t",
+                  cond: { $ne: ["$$t.status", "deleted"] },
+                },
+              },
+              as: "trip",
+              in: {
+                $mergeObjects: [
+                  "$$trip",
+                  {
+                    status: {
+                      $cond: {
+                        if: { $lt: ["$$trip.start_date", now] }, // Nếu ngày bắt đầu < hiện tại
+                        then: "closed",
+                        else: "$$trip.status",
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        // 4. Lấy ngày khởi hành sớm nhất trong tương lai để làm mốc sắp xếp Tour
+        // (Nếu không có trip nào trong tương lai, dùng ngày xa tít tắp để nó xuống cuối)
+        $addFields: {
+          earliestTripDate: {
+            $min: {
+              $filter: {
+                input: "$trips.start_date",
+                as: "sd",
+                cond: { $gte: ["$$sd", now] },
+              },
+            },
+          },
+        },
+      },
+      {
+        // 5. Kết nối lấy Ảnh, Mô tả và Category (giống hàm cũ của bạn)
+        $lookup: {
+          from: "tourimages",
+          localField: "_id",
+          foreignField: "tour_id",
+          as: "images",
+        },
+      },
+      {
+        $lookup: {
+          from: "descriptions",
+          localField: "_id",
+          foreignField: "tour_id",
+          as: "descriptions",
+        },
+      },
+      {
+        // 6. Sắp xếp: Tour có trip gần nhất sẽ lên đầu.
+        // Tour không có trip tương lai (earliestTripDate null) sẽ xuống cuối.
+        $sort: { earliestTripDate: 1, createdAt: -1 },
+      },
+      {
+        // 7. Loại bỏ field phụ phục vụ sort
+        $project: { earliestTripDate: 0 },
+      },
     ]);
 
-    const result = tours.map((tour) => ({
-      ...tour,
-      images: images.filter(
-        (img) => img.tour_id.toString() === tour._id.toString(),
-      ),
-      descriptions: descriptions.filter(
-        (desc) => desc.tour_id.toString() === tour._id.toString(),
-      ),
-    }));
-
-    return res
-      .status(200)
-      .json({ success: true, count: result.length, data: result });
+    return res.status(200).json({
+      success: true,
+      count: result.length,
+      data: result,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
