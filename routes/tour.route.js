@@ -18,8 +18,6 @@ router.get("/admin", tourController.getAllToursAdmin);
 
 router.get("/detail/:slug", optionalAuth, tourController.getTourBySlug);
 
-router.get("/tour-is-comming-soon", tourController.tourIsCommingSoon);
-
 router.put("/update/:slug", tourController.updateTour);
 
 router.delete("/image/:imageId", tourController.deleteTourImage);

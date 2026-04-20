@@ -436,63 +436,6 @@ const updateTourStatus = async (req, res) => {
   }
 };
 
-const tourIsCommingSoon = async (req, res) => {
-  try {
-    const results = await Trip.aggregate([
-      {
-        // 1. Lấy tất cả Trip trừ những cái đã xóa
-        $match: {
-          status: { $ne: "deleted" },
-        },
-      },
-      {
-        // 2. Sắp xếp toàn bộ Trip theo ngày bắt đầu tăng dần (gần nhất lên trước)
-        $sort: { start_date: 1 },
-      },
-      {
-        // 3. Gom nhóm theo Tour
-        $group: {
-          _id: "$tour_id",
-          trips: { $push: "$$ROOT" }, // Đẩy danh sách trip vào tour tương ứng
-          firstDeparture: { $first: "$start_date" }, // Lấy ngày của trip sớm nhất để tí nữa sort Tour
-        },
-      },
-      {
-        // 4. Lấy thông tin chi tiết của Tour
-        $lookup: {
-          from: "tours",
-          localField: "_id",
-          foreignField: "_id",
-          as: "tourDetails",
-        },
-      },
-      {
-        $unwind: "$tourDetails",
-      },
-      {
-        // 5. Sắp xếp các Tour: Tour nào có Trip diễn ra sớm nhất sẽ đứng đầu danh sách
-        $sort: { firstDeparture: 1 },
-      },
-      {
-        // 6. Định dạng lại đầu ra
-        $project: {
-          _id: 0,
-          tour: "$tourDetails",
-          trips: 1,
-        },
-      },
-    ]);
-
-    res.status(200).json({
-      success: true,
-      count: results.length,
-      data: results,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 module.exports = {
   createTour,
   uploadTourImages,
@@ -502,5 +445,4 @@ module.exports = {
   updateTour,
   deleteTourImage,
   updateTourStatus,
-  tourIsCommingSoon,
 };
