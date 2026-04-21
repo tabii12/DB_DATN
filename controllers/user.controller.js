@@ -228,7 +228,7 @@ const googleAuth = async (req, res) => {
       });
     }
 
-    // ===== Check user tồn tại =====
+    // ===== Check user tồn tại  =====
     let user = await User.findOne({ email });
 
     if (!user) {
