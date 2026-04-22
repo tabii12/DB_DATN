@@ -39,7 +39,7 @@ const register = async (req, res) => {
     });
 
     /* ===== Gửi email xác thực ===== */
-    const verifyUrl = `https://db-datn-six.vercel.app/api/users/verify-email/${email}/${verifyCode}`;
+    const verifyUrl = `https://db-pickyourway.vercel.app/api/users/verify-email/${email}/${verifyCode}`;
 
     await sendEmail({
       to: email,
