@@ -1,4 +1,5 @@
 const { User } = require("../models/user.model");
+const LoginHistory = require("../models/loginHistory.model");
 const sendEmail = require("../utils/sendEmail");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -182,6 +183,11 @@ const login = async (req, res) => {
 
     console.log("LOGIN SECRET:", process.env.JWT_SECRET);
 
+    await LoginHistory.create({
+      user_id: user._id,
+      login_time: new Date(),
+    });
+
     return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công",
@@ -244,6 +250,11 @@ const googleAuth = async (req, res) => {
     // ===== Tạo JWT =====
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
+    });
+
+    await LoginHistory.create({
+      user_id: user._id,
+      login_time: new Date(),
     });
 
     return res.status(200).json({
