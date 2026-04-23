@@ -26,6 +26,7 @@ const getLoginStats = async (req, res) => {
     const { type, year, month, day, hour } = req.query;
 
     const now = new Date();
+    // Chuyển về kiểu Number để đảm bảo tính toán chính xác
     const targetYear = parseInt(year) || now.getFullYear();
     const targetMonth = parseInt(month) || now.getMonth() + 1;
     const targetDay = parseInt(day) || now.getDate();
@@ -33,30 +34,41 @@ const getLoginStats = async (req, res) => {
     let startDate, endDate;
 
     if (type === "hour") {
-      // Lọc chính xác 1 giờ cụ thể của 1 ngày cụ thể
       const targetHour = parseInt(hour) || 0;
+      // Lưu ý: Month trong JS tính từ 0-11, nên phải -1
+      // Chúng ta sẽ tạo ngày theo giờ địa phương, sau đó trừ đi 7 tiếng để ra đúng mốc UTC trong DB
       startDate = new Date(
-        `${targetYear}-${targetMonth}-${targetDay}T${targetHour}:00:00+07:00`,
+        targetYear,
+        targetMonth - 1,
+        targetDay,
+        targetHour,
+        0,
+        0,
       );
       endDate = new Date(
-        `${targetYear}-${targetMonth}-${targetDay}T${targetHour}:59:59+07:00`,
+        targetYear,
+        targetMonth - 1,
+        targetDay,
+        targetHour,
+        59,
+        59,
       );
     } else if (type === "day") {
-      // Lọc chính xác 1 ngày cụ thể
-      startDate = new Date(
-        `${targetYear}-${targetMonth}-${targetDay}T00:00:00+07:00`,
-      );
-      endDate = new Date(
-        `${targetYear}-${targetMonth}-${targetDay}T23:59:59+07:00`,
-      );
+      startDate = new Date(targetYear, targetMonth - 1, targetDay, 0, 0, 0);
+      endDate = new Date(targetYear, targetMonth - 1, targetDay, 23, 59, 59);
     } else if (type === "month") {
-      // Lọc chính xác 1 tháng cụ thể
-      startDate = new Date(`${targetYear}-${targetMonth}-01T00:00:00+07:00`);
-      // Ngày 0 của tháng sau chính là ngày cuối của tháng hiện tại
+      startDate = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0);
+      // Ngày 0 của tháng sau là ngày cuối cùng của tháng này
       endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
     }
 
-    // Thực hiện đếm số lượng bản ghi trong khoảng thời gian xác định
+    // Kiểm tra nếu Date không hợp lệ trước khi truy vấn
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Thông số ngày tháng không hợp lệ" });
+    }
+
     const count = await LoginHistory.countDocuments({
       login_time: { $gte: startDate, $lte: endDate },
     });
@@ -75,6 +87,7 @@ const getLoginStats = async (req, res) => {
       total_logins: count,
     });
   } catch (error) {
+    console.error("🔥 Stats Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
