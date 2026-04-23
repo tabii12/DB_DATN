@@ -23,29 +23,57 @@ const getAllLoginHistory = async (req, res) => {
 
 const getLoginStats = async (req, res) => {
   try {
-    const { type } = req.query; // 'day', 'month', 'hour'
-    let groupBy = {};
+    const { type, year, month, day, hour } = req.query;
+
+    const now = new Date();
+    const targetYear = parseInt(year) || now.getFullYear();
+    const targetMonth = parseInt(month) || now.getMonth() + 1;
+    const targetDay = parseInt(day) || now.getDate();
+
+    let startDate, endDate;
 
     if (type === "hour") {
-      groupBy = { $hour: "$login_time" };
+      // Lọc chính xác 1 giờ cụ thể của 1 ngày cụ thể
+      const targetHour = parseInt(hour) || 0;
+      startDate = new Date(
+        `${targetYear}-${targetMonth}-${targetDay}T${targetHour}:00:00+07:00`,
+      );
+      endDate = new Date(
+        `${targetYear}-${targetMonth}-${targetDay}T${targetHour}:59:59+07:00`,
+      );
+    } else if (type === "day") {
+      // Lọc chính xác 1 ngày cụ thể
+      startDate = new Date(
+        `${targetYear}-${targetMonth}-${targetDay}T00:00:00+07:00`,
+      );
+      endDate = new Date(
+        `${targetYear}-${targetMonth}-${targetDay}T23:59:59+07:00`,
+      );
     } else if (type === "month") {
-      groupBy = { $month: "$login_time" };
-    } else {
-      // Mặc định là theo ngày
-      groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$login_time" } };
+      // Lọc chính xác 1 tháng cụ thể
+      startDate = new Date(`${targetYear}-${targetMonth}-01T00:00:00+07:00`);
+      // Ngày 0 của tháng sau chính là ngày cuối của tháng hiện tại
+      endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
     }
 
-    const stats = await LoginHistory.aggregate([
-      {
-        $group: {
-          _id: groupBy,
-          count: { $sum: 1 },
+    // Thực hiện đếm số lượng bản ghi trong khoảng thời gian xác định
+    const count = await LoginHistory.countDocuments({
+      login_time: { $gte: startDate, $lte: endDate },
+    });
+
+    return res.status(200).json({
+      success: true,
+      filter: {
+        type,
+        selection: {
+          year: targetYear,
+          month: targetMonth,
+          day: type !== "month" ? targetDay : undefined,
+          hour: type === "hour" ? parseInt(hour) : undefined,
         },
       },
-      { $sort: { _id: 1 } },
-    ]);
-
-    return res.status(200).json({ success: true, data: stats });
+      total_logins: count,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
