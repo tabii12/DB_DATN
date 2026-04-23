@@ -35,31 +35,35 @@ const getLoginStats = async (req, res) => {
 
     if (type === "hour") {
       const targetHour = parseInt(hour) || 0;
-      // Lưu ý: Month trong JS tính từ 0-11, nên phải -1
-      // Chúng ta sẽ tạo ngày theo giờ địa phương, sau đó trừ đi 7 tiếng để ra đúng mốc UTC trong DB
+
+      // Tạo mốc thời gian theo UTC bằng cách trừ đi 7 tiếng (múi giờ VN)
+      // Date.UTC(year, monthIndex, day, hour, minute, second)
       startDate = new Date(
-        targetYear,
-        targetMonth - 1,
-        targetDay,
-        targetHour,
-        0,
-        0,
+        Date.UTC(targetYear, targetMonth - 1, targetDay, targetHour - 7, 0, 0),
       );
       endDate = new Date(
-        targetYear,
-        targetMonth - 1,
-        targetDay,
-        targetHour,
-        59,
-        59,
+        Date.UTC(
+          targetYear,
+          targetMonth - 1,
+          targetDay,
+          targetHour - 7,
+          59,
+          59,
+        ),
       );
     } else if (type === "day") {
-      startDate = new Date(targetYear, targetMonth - 1, targetDay, 0, 0, 0);
-      endDate = new Date(targetYear, targetMonth - 1, targetDay, 23, 59, 59);
+      // Lọc cả ngày VN (từ 00h sáng VN đến 23h59 VN) -> quy đổi sang UTC
+      startDate = new Date(
+        Date.UTC(targetYear, targetMonth - 1, targetDay, 0 - 7, 0, 0),
+      );
+      endDate = new Date(
+        Date.UTC(targetYear, targetMonth - 1, targetDay, 23 - 7, 59, 59),
+      );
     } else if (type === "month") {
-      startDate = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0);
-      // Ngày 0 của tháng sau là ngày cuối cùng của tháng này
-      endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
+      startDate = new Date(
+        Date.UTC(targetYear, targetMonth - 1, 1, 0 - 7, 0, 0),
+      );
+      endDate = new Date(Date.UTC(targetYear, targetMonth, 0, 23 - 7, 59, 59));
     }
 
     // Kiểm tra nếu Date không hợp lệ trước khi truy vấn
