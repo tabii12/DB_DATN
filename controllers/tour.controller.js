@@ -124,16 +124,27 @@ const getAllTours = async (req, res) => {
       },
       {
         $lookup: {
-          from: "categories", // Tên collection của bảng categories
-          localField: "category_id",
-          foreignField: "_id",
+          from: "categories",
+          let: { cat_id: "$category_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$cat_id"] },
+                    { $eq: ["$status", "active"] }, // Chỉ lấy category active
+                  ],
+                },
+              },
+            },
+          ],
           as: "category_info",
         },
       },
       {
         $unwind: {
           path: "$category_info",
-          preserveNullAndEmptyArrays: true, // Tránh mất tour nếu category bị xóa nhầm
+          preserveNullAndEmptyArrays: false,
         },
       },
       // 2. Xử lý logic Trip (Auto-closed & Filter deleted)
@@ -168,7 +179,7 @@ const getAllTours = async (req, res) => {
         },
       },
 
-      // 3. MỚI: Sắp xếp lại các Trip bên trong mảng trips (ngày gần nhất lên đầu mảng)
+      // 3. Sắp xếp lại các Trip bên trong mảng trips (ngày gần nhất lên đầu mảng)
       {
         $addFields: {
           trips: {
