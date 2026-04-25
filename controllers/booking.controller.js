@@ -265,72 +265,55 @@ const updateBookingStatus = async (req, res) => {
     }
 
     const currentStatus = booking.status;
-    const statusOrder = { pending: 1, confirmed: 2, paid: 3, cancelled: 0 };
 
-    // 1. Chặn đi lùi trạng thái (Ví dụ: đã Paid thì không thể quay về Confirmed)
-    if (currentStatus !== "cancelled" && newStatus !== "cancelled") {
-      if (statusOrder[newStatus] < statusOrder[currentStatus]) {
+    // --- VALIDATE CHỈ CHO PHÉP ĐI TIẾP (MỘT CHIỀU) ---
+    const statusOrder = { pending: 1, confirmed: 2, paid: 3, cancelled: -1 };
+
+    // Nếu trạng thái mới không phải 'cancelled'
+    if (newStatus !== "cancelled") {
+      // 1. Không được quay lại trạng thái cũ (Ví dụ: Paid -> Confirmed là lỗi)
+      if (
+        statusOrder[newStatus] <= statusOrder[currentStatus] &&
+        currentStatus !== "cancelled"
+      ) {
         await session.abortTransaction();
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Không thể quay lại trạng thái trước đó",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Không thể quay lại trạng thái trước đó",
+        });
       }
+
+      // 2. Nếu đơn đang bị 'cancelled', Admin có thể "cứu" đơn về 'confirmed' hoặc 'paid'
+      // (Trong trường hợp này ta cho phép đi từ -1 lên các số dương)
     }
 
-    // 2. Tự động tính toán các trường dựa trên Status mới
+    // Nếu đơn đã 'paid', không cho phép đổi sang bất cứ gì trừ 'cancelled'
+    if (currentStatus === "paid" && newStatus !== "cancelled") {
+      await session.abortTransaction();
+      return res
+        .status(400)
+        .json({ success: false, message: "Đơn hàng đã hoàn tất thanh toán" });
+    }
+    // ----------------------------------------------
+
     let updateFields = { status: newStatus };
 
+    // Tự động cập nhật % thanh toán cho Admin
     if (userRole === "admin") {
       if (newStatus === "confirmed") {
-        // Nếu lên Confirmed -> Mặc định hiểu là đã thanh toán 50%
         updateFields.paymentPct = 50;
         updateFields.payNow = booking.total_price * 0.5;
         updateFields.remaining = booking.total_price * 0.5;
       } else if (newStatus === "paid") {
-        // Nếu lên Paid -> Mặc định hiểu là đã thanh toán 100%
         updateFields.paymentPct = 100;
         updateFields.payNow = booking.total_price;
         updateFields.remaining = 0;
       }
-
-      // Cập nhật log thanh toán thủ công vào object vnpay
-      if (newStatus === "confirmed" || newStatus === "paid") {
-        updateFields.vnpay = {
-          ...booking.vnpay?.toObject(),
-          status: newStatus === "paid" ? "paid" : "partial",
-          confirmed_by: userId,
-          paid_at: new Date(),
-        };
-      }
     }
 
-    // 3. Xử lý logic HỦY (Hoàn lại slot cho Trip)
-    if (newStatus === "cancelled") {
-      // Chỉ chủ đơn hoặc Admin mới được hủy
-      if (
-        booking.user_id.toString() !== userId.toString() &&
-        userRole !== "admin"
-      ) {
-        await session.abortTransaction();
-        return res
-          .status(403)
-          .json({ success: false, message: "Bạn không có quyền này" });
-      }
-
-      // Nếu là khách hủy: phải trước ngày đi 3 ngày
-      const daysToDeparture =
-        (new Date(booking.departureDate) - new Date()) / (1000 * 60 * 60 * 24);
-      if (daysToDeparture < 3 && userRole !== "admin") {
-        await session.abortTransaction();
-        return res
-          .status(400)
-          .json({ success: false, message: "Sắp khởi hành, không thể tự hủy" });
-      }
-
-      // Cộng lại slot người đi cho Trip
+    // Xử lý biến động Slot (Trip)
+    if (newStatus === "cancelled" && currentStatus !== "cancelled") {
+      // Hủy đơn: Trả lại slot
       await Trip.findByIdAndUpdate(
         booking.trip_id,
         {
@@ -338,23 +321,30 @@ const updateBookingStatus = async (req, res) => {
         },
         { session },
       );
+    } else if (
+      currentStatus === "cancelled" &&
+      ["confirmed", "paid"].includes(newStatus)
+    ) {
+      // Phục hồi đơn: Trừ lại slot
+      await Trip.findByIdAndUpdate(
+        booking.trip_id,
+        {
+          $inc: { booked_people: booking.total_members },
+        },
+        { session },
+      );
     }
 
-    // 4. Lưu thay đổi
     const updatedBooking = await Booking.findByIdAndUpdate(
       bookingId,
       { $set: updateFields },
-      { new: true, session, runValidators: false },
+      { new: true, session },
     );
 
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({
-      success: true,
-      message: `Cập nhật trạng thái thành công: ${newStatus}`,
-      data: updatedBooking,
-    });
+    return res.status(200).json({ success: true, data: updatedBooking });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
