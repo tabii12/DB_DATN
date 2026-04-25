@@ -59,7 +59,7 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const isSuccess = vnpay?.vnp_ResponseCode === "00";
+    const isPaid = vnpay?.vnp_ResponseCode === "00";
 
     const paidAmount = isSuccess ? Number(vnpay?.amount || 0) : 0;
     const totalAmount = total_price;
@@ -75,8 +75,6 @@ const createBooking = async (req, res) => {
     if (paymentPct === 50) bookingStatus = "confirmed";
     if (paymentPct === 100) bookingStatus = "paid";
 
-    const paymentStatus = isSuccess ? "paid" : "failed";
-
     delete data.payment;
     delete data.paymentStatus;
     delete data.status;
@@ -87,7 +85,6 @@ const createBooking = async (req, res) => {
       total_members,
       total_price,
       status: bookingStatus,
-      paymentPct,
       vnpay: {
         method: vnpay ? "vnpay" : "bank_transfer",
         amount: vnpay.amount,
@@ -136,7 +133,7 @@ const createBooking = async (req, res) => {
 
     console.error(error);
     return res.status(500).json({
-      message: error.message,
+      message: "Server error",
     });
   }
 };
