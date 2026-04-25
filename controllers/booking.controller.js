@@ -69,7 +69,7 @@ const createBooking = async (req, res) => {
     delete data.status;
 
     const bookingDoc = new Booking({
-      ...data,  
+      ...data,
       user_id: userId,
       total_members,
       total_price,
@@ -120,9 +120,12 @@ const createBooking = async (req, res) => {
 
     session.endSession();
 
-    console.error(error);
+    console.error("❌ CREATE BOOKING ERROR:", error);
+
     return res.status(500).json({
-      message: "Server error",
+      success: false,
+      message: error.message,
+      stack: error.stack, // 🔥 thêm dòng này (dev only)
     });
   }
 };
