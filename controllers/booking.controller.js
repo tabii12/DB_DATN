@@ -254,51 +254,37 @@ const updateBookingStatus = async (req, res) => {
     const bookingId = req.params.id;
     const { newStatus } = req.body;
     const userRole = req.user.role;
-    const userId = req.user._id;
 
     const booking = await Booking.findById(bookingId).session(session);
     if (!booking) {
       await session.abortTransaction();
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy đơn hàng" });
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng",
+      });
     }
 
     const currentStatus = booking.status;
 
-    // --- VALIDATE CHỈ CHO PHÉP ĐI TIẾP (MỘT CHIỀU) ---
-    const statusOrder = { pending: 1, confirmed: 2, paid: 3, cancelled: -1 };
+    // ✅ Chỉ cho phép đi 1 chiều
+    const allowedTransitions = {
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["paid", "cancelled"],
+      paid: [],
+      cancelled: [],
+    };
 
-    // Nếu trạng thái mới không phải 'cancelled'
-    if (newStatus !== "cancelled") {
-      // 1. Không được quay lại trạng thái cũ (Ví dụ: Paid -> Confirmed là lỗi)
-      if (
-        statusOrder[newStatus] <= statusOrder[currentStatus] &&
-        currentStatus !== "cancelled"
-      ) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          success: false,
-          message: "Không thể quay lại trạng thái trước đó",
-        });
-      }
-
-      // 2. Nếu đơn đang bị 'cancelled', Admin có thể "cứu" đơn về 'confirmed' hoặc 'paid'
-      // (Trong trường hợp này ta cho phép đi từ -1 lên các số dương)
-    }
-
-    // Nếu đơn đã 'paid', không cho phép đổi sang bất cứ gì trừ 'cancelled'
-    if (currentStatus === "paid" && newStatus !== "cancelled") {
+    if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
       await session.abortTransaction();
-      return res
-        .status(400)
-        .json({ success: false, message: "Đơn hàng đã hoàn tất thanh toán" });
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển từ '${currentStatus}' sang '${newStatus}'`,
+      });
     }
-    // ----------------------------------------------
 
     let updateFields = { status: newStatus };
 
-    // Tự động cập nhật % thanh toán cho Admin
+    // ✅ Admin tự động cập nhật payment
     if (userRole === "admin") {
       if (newStatus === "confirmed") {
         updateFields.paymentPct = 50;
@@ -311,25 +297,12 @@ const updateBookingStatus = async (req, res) => {
       }
     }
 
-    // Xử lý biến động Slot (Trip)
-    if (newStatus === "cancelled" && currentStatus !== "cancelled") {
-      // Hủy đơn: Trả lại slot
+    // ✅ Xử lý slot
+    if (newStatus === "cancelled") {
       await Trip.findByIdAndUpdate(
         booking.trip_id,
         {
           $inc: { booked_people: -booking.total_members },
-        },
-        { session },
-      );
-    } else if (
-      currentStatus === "cancelled" &&
-      ["confirmed", "paid"].includes(newStatus)
-    ) {
-      // Phục hồi đơn: Trừ lại slot
-      await Trip.findByIdAndUpdate(
-        booking.trip_id,
-        {
-          $inc: { booked_people: booking.total_members },
         },
         { session },
       );
@@ -344,11 +317,17 @@ const updateBookingStatus = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ success: true, data: updatedBooking });
+    return res.status(200).json({
+      success: true,
+      data: updatedBooking,
+    });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
