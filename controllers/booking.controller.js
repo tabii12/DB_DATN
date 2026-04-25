@@ -61,19 +61,8 @@ const createBooking = async (req, res) => {
 
     const isPaid = vnpay?.vnp_ResponseCode === "00";
 
-    const paidAmount = isSuccess ? Number(vnpay?.amount || 0) : 0;
-    const totalAmount = total_price;
-
-    let paymentPct = 0;
-    if (paidAmount >= totalAmount) {
-      paymentPct = 100;
-    } else if (paidAmount >= totalAmount * 0.5) {
-      paymentPct = 50;
-    }
-
-    let bookingStatus = "pending";
-    if (paymentPct === 50) bookingStatus = "confirmed";
-    if (paymentPct === 100) bookingStatus = "paid";
+    const bookingStatus = isPaid ? "confirmed" : "pending";
+    const paymentStatus = isPaid ? "paid" : "failed";
 
     delete data.payment;
     delete data.paymentStatus;

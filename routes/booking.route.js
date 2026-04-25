@@ -14,11 +14,7 @@ router.post("/", bookingController.createBooking);
 router.get("/my-bookings", bookingController.getMyBookings);
 
 // Route kiểm tra nhanh việc đã đặt tour hay chưa
-router.get(
-  "/check-booked/:tourId",
-  primaryAuth,
-  bookingController.checkUserHasBooked,
-);
+router.get("/check-booked/:tourId", primaryAuth, bookingController.checkUserHasBooked);
 
 router.patch("/detail/:id/status", bookingController.updateBookingStatus);
 
