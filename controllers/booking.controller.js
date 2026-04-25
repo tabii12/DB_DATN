@@ -356,6 +356,80 @@ const checkUserHasBooked = async (req, res) => {
   }
 };
 
+const adminUpgradePayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+
+    // 1. Tìm đơn hàng trong phiên làm việc
+    const booking = await Booking.findById(id).session(session);
+
+    if (!booking) {
+      await session.abortTransaction();
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    // 2. Kiểm tra logic chặt chẽ: Chỉ cho phép đi từ 50 lên 100
+    if (booking.paymentPct === 100) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Đơn hàng đã ở trạng thái thanh toán 100%.",
+      });
+    }
+
+    if (booking.paymentPct !== 50) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: "Chỉ có thể nâng cấp đơn hàng đang ở mức 50%.",
+      });
+    }
+
+    // 3. Thực hiện cập nhật các thông số tài chính
+    // Cập nhật pct lên 100, thu đủ tiền, xóa nợ
+    booking.paymentPct = 100;
+    booking.payNow = booking.total_price;
+    booking.remaining = 0;
+    booking.status = "paid"; // Admin xác nhận thì chuyển thẳng sang "đã thanh toán"
+
+    // Cập nhật thông tin ghi chú trong object vnpay/payment
+    if (booking.vnpay) {
+      booking.vnpay.status = "paid";
+      booking.vnpay.admin_confirmed = true; // Đánh dấu là do admin xác nhận thủ công
+      booking.vnpay.confirmed_at = new Date();
+    }
+
+    await booking.save({ session });
+
+    // 4. Commit giao dịch
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin đã cập nhật thanh toán 100% thành công",
+      data: booking,
+    });
+  } catch (error) {
+    // Rollback nếu có bất kỳ lỗi gì xảy ra
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
+
+    console.error("Admin Upgrade Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi hệ thống khi Admin cập nhật trạng thái",
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
@@ -363,4 +437,5 @@ module.exports = {
   getTripStatusReport,
   updateBookingStatus,
   checkUserHasBooked,
+  adminUpgradePayment,
 };

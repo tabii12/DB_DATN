@@ -14,7 +14,11 @@ router.post("/", bookingController.createBooking);
 router.get("/my-bookings", bookingController.getMyBookings);
 
 // Route kiểm tra nhanh việc đã đặt tour hay chưa
-router.get("/check-booked/:tourId", primaryAuth, bookingController.checkUserHasBooked);
+router.get(
+  "/check-booked/:tourId",
+  primaryAuth,
+  bookingController.checkUserHasBooked,
+);
 
 router.patch("/detail/:id/status", bookingController.updateBookingStatus);
 
@@ -28,5 +32,10 @@ router.get("/admin/status-report", bookingController.getTripStatusReport);
 
 // Admin cập nhật trạng thái đơn hàng (Confirm thanh toán, Hủy đơn, xác nhận...)
 router.patch("/admin/:id/status", bookingController.updateBookingStatus);
+
+router.patch(
+  "/admin/:id/upgrade-payment",
+  bookingController.adminUpgradePayment,
+);
 
 module.exports = router;
