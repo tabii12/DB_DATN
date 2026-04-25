@@ -33,9 +33,4 @@ router.get("/admin/status-report", bookingController.getTripStatusReport);
 // Admin cập nhật trạng thái đơn hàng (Confirm thanh toán, Hủy đơn, xác nhận...)
 router.patch("/admin/:id/status", bookingController.updateBookingStatus);
 
-router.patch(
-  "/admin/:id/upgrade-payment",
-  bookingController.adminUpgradePayment,
-);
-
 module.exports = router;
