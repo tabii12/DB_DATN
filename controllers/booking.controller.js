@@ -69,7 +69,7 @@ const createBooking = async (req, res) => {
     delete data.status;
 
     const bookingDoc = new Booking({
-      ...data,
+      ...data,  
       user_id: userId,
       total_members,
       total_price,
@@ -354,6 +354,53 @@ const checkUserHasBooked = async (req, res) => {
   }
 };
 
+const updatePayment = async (req, res) => {
+  try {
+    const { txnRef, total_price } = req.body;
+
+    const booking = await Booking.findOne({
+      "vnpay.transfer_content": txnRef,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy booking",
+      });
+    }
+
+    const paidAmount = Number(total_price || 0);
+    const totalAmount = booking.total_price;
+
+    let paymentPct = 0;
+    if (paidAmount >= totalAmount) {
+      paymentPct = 100;
+    } else if (paidAmount >= totalAmount * 0.5) {
+      paymentPct = 50;
+    }
+
+    let status = "pending";
+    if (paymentPct === 50) status = "confirmed";
+    if (paymentPct === 100) status = "paid";
+
+    booking.paymentPct = paymentPct;
+    booking.status = status;
+    booking.vnpay.status = "paid";
+
+    await booking.save();
+
+    return res.json({
+      success: true,
+      data: booking,
+    });
+  } catch (error) {
+    console.error("UPDATE PAYMENT ERROR:", error);
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
@@ -361,4 +408,5 @@ module.exports = {
   getTripStatusReport,
   updateBookingStatus,
   checkUserHasBooked,
+  updatePayment,
 };
