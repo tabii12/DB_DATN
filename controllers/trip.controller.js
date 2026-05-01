@@ -105,7 +105,7 @@ const createTrip = async (req, res) => {
     }
 
     // 6. Tính giá bán cuối cùng (Lợi nhuận 20% và làm tròn)
-    const rawPrice = (totalBaseCost * 1.2) / max_people;
+    const rawPrice = (totalBaseCost * 1.2) / min_people;
     const pricePerPerson = Math.ceil(rawPrice / 10000) * 10000 - 1000;
 
     // 7. Lưu vào Database
