@@ -87,8 +87,8 @@ const tripSchema = new mongoose.Schema(
 ========================== */
 tripSchema.pre("save", function (next) {
   // 1. Kiểm tra ngày tháng
-  if (this.end_date <= this.start_date) {
-    return next(new Error("Ngày kết thúc phải sau ngày bắt đầu."));
+  if (this.end_date < this.start_date) {
+    return next(new Error("Ngày kết thúc không được trước ngày bắt đầu."));
   }
 
   // 3. Tự động cập nhật trạng thái theo số người đặt
