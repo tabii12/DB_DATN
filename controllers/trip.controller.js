@@ -306,6 +306,7 @@ const updateTripById = async (req, res) => {
             service_id: item.service_id,
             unit_price: unitPrice,
             quantity: item.quantity || 1,
+            note: serviceData.serviceName,
           });
         }
       }
