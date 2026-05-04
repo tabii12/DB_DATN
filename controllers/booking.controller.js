@@ -350,11 +350,11 @@ const updateBookingStatus = async (req, res) => {
 const checkUserHasBooked = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { tourId } = req.params;
+    const { trip_id } = req.params;
 
     const hasBooked = await Booking.findOne({
       user_id: userId,
-      trip_id: tourId,
+      trip_id: trip_id,
       status: "paid",
     }).select("_id");
 
