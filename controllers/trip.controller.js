@@ -314,7 +314,7 @@ const updateTripById = async (req, res) => {
       trip.services = processedServices;
 
       // Tính giá gốc chia đầu người
-      const basePricePerPerson = totalBaseCostOfTour / (trip.max_people || 1);
+      const basePricePerPerson = totalBaseCostOfTour / (trip.min_people || 1);
       trip.base_price = basePricePerPerson;
 
       // Tính giá bán gợi ý
