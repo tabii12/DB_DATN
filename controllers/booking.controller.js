@@ -188,6 +188,7 @@ const getAllBookings = async (req, res) => {
       })
       .populate({
         path: "trip_id",
+        select: "start_date end_date base_price status",
         populate: {
           path: "services",
           model: "Service",
@@ -282,7 +283,7 @@ const updateBookingStatus = async (req, res) => {
 
     // ✅ Chỉ cho phép đi 1 chiều
     const allowedTransitions = {
-      pending: ["confirmed","paid", "cancelled"],
+      pending: ["confirmed", "paid", "cancelled"],
       confirmed: ["paid", "cancelled"],
       paid: ["cancelled"],
       cancelled: ["refunded"],
