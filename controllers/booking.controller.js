@@ -148,9 +148,6 @@ const getMyBookings = async (req, res) => {
   try {
     const userId = req.user._id;
     const bookings = await Booking.find({ user_id: userId })
-      .select(
-        "trip_id tourName departureDate adults children infants total_price status createdAt thumbnail",
-      )
       .populate({
         path: "trip_id",
         select: "start_date end_date",
@@ -285,10 +282,11 @@ const updateBookingStatus = async (req, res) => {
 
     // ✅ Chỉ cho phép đi 1 chiều
     const allowedTransitions = {
-      pending: ["confirmed", "cancelled"],
+      pending: ["confirmed","paid", "cancelled"],
       confirmed: ["paid", "cancelled"],
-      paid: [],
-      cancelled: [],
+      paid: ["cancelled"],
+      cancelled: ["refunded"],
+      refunded: [],
     };
 
     if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
