@@ -14,6 +14,8 @@ router.get("/verify-email/:email/:code", userController.verifyEmail);
 // ===== PROTECTED ROUTES =====
 router.get("/", primaryAuth, userController.getAllUsers);
 router.patch("/update/:id", primaryAuth, userController.updateUser);
+router.patch("/status/:id", primaryAuth, userController.updateUserStatus);
+router.put("/role/:id", primaryAuth, userController.updateUserRole); 
 router.put("/change-password", primaryAuth, userController.changePassword);
 
 // ===== LAST: DYNAMIC ROUTE =====

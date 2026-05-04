@@ -410,7 +410,37 @@ const changePassword = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+const updateUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const validStatuses = ["active", "inactive", "blocked"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: "Trạng thái không hợp lệ" });
+    }
+    const user = await User.findByIdAndUpdate(id, { status }, { new: true });
+    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    return res.json({ success: true, message: "Cập nhật trạng thái thành công", data: user });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
+const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const validRoles = ["user", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ success: false, message: "Vai trò không hợp lệ" });
+    }
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true });
+    if (!user) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    return res.json({ success: true, message: "Cập nhật vai trò thành công", data: user });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 module.exports = {
   register,
   verifyEmail,
@@ -420,4 +450,6 @@ module.exports = {
   updateUser,
   getUserById,
   changePassword,
+  updateUserStatus,
+  updateUserRole,
 };
